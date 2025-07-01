@@ -1,0 +1,437 @@
+.full-width {
+  width: 100%;
+}
+
+.full-scale-width {
+  --width: 100%;
+  --transform: translateY(-25%) scale(.45);
+  transform: translateX(-25%) scale(.45);
+  font-size: 24px;
+  display: flex;
+  flex-direction: row;
+  margin : -10px
+}
+
+.radio-button-scale {
+  --width: 100%;
+  --transform: translateY(-25%) scale(.45);
+  transform: translateX(-10%) scale(.75);
+  font-size: 30px;
+  display: flex;
+  flex-direction: row;
+  margin : 2px
+}
+
+.full-scale-width_x {
+  width: 100%;
+   transform: translateY(-1.0em) scale(.75);
+   align-content:left ;
+   align-items: left ;
+   align-self: left ;
+   padding: 1px; 
+   margin : 1px
+
+}
+.full-scale-width_ta {
+  width: 100%;
+   transform: translateY(-1.1em) scale(.75);
+    min-height: 320px; 
+}
+
+
+.shipping-card {
+  min-width: 120px;
+  margin: 20px auto;
+}
+
+.mat-radio-button {
+  display: block;
+  margin: 5px 0;
+}
+
+.address-lable {
+  display: block;
+  margin: 8px 0;
+  --background-color: #F2F0EF;
+  font-size: 1.2rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.col-address-label {
+  max-width: 100%;
+}
+
+.row {
+  display: flex;
+  flex-direction: row;
+}
+
+.col {
+  flex: 1;
+  margin-right: 20px;
+}
+
+.col:last-child {
+  margin-right: 0;
+}
+
+/* .sticky-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--ion-toolbar-background);
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px 0 24px 0;
+  z-index: 100;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  height: 4rem;
+} */
+
+body, .mat-typography {
+  padding-bottom: 64px; /* Prevent content from being hidden behind sticky footer */
+}
+
+.reply-icon-btn {
+  background: var(--ion-toolbar-background);
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 8px;
+  /* box-shadow: 0 1px 4px rgba(60,64,67,.15); */
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 0;
+  position: relative;
+  left: -30px;
+}
+.reply-icon-btn:active {
+  background: var(--ion-toolbar-background);
+}
+.forward-icon-btn {
+  background: var(--ion-toolbar-background);
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 8px;
+  /* box-shadow: 0 1px 4px rgba(60,64,67,.15); */
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 0;
+  position: relative;
+  left: 30px;
+}
+.forward-icon-btn:active {
+  background: var(--ion-toolbar-background);
+}
+
+.attachment-list {
+  margin: 5px 0 0 0;
+  background: transparent;
+  box-shadow: none;
+}
+.attachment-card {
+  display: flex;
+  width: 100%;
+  height: 60px;
+  align-items: center;
+  background: #f1f3f4;
+  border-radius: 16px;
+  padding: 8px 16px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 4px rgba(60,64,67,.10);
+}
+.attachment-card .file-icon {
+  color: #5f6368;
+  font-size: 28px;
+  margin-right: 12px;
+}
+.attachment-card .file-name {
+  flex: 1;
+  font-size: 1.1rem;
+  color: #222;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.attachment-card.no-attachment {
+  background: #f1f3f4;
+  color: #888;
+  justify-content: flex-start;
+}
+
+.mail-message-content {
+  padding-bottom: 64px; /* Enough space for sticky footer */
+}
+
+.mail-header-fields {
+  background: transparent !important;
+  box-shadow: none !important;
+  margin-bottom: 0;
+  padding: 0;
+}
+.mail-header-field {
+  width: 100%;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  padding: 0 0 0 0;
+}
+.mail-header-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 1.15em;
+  color: var(--text-color);
+  padding: 14px 0 14px 0;
+  margin-bottom: 0;
+}
+.mail-header-input::placeholder {
+  color: #888;
+  opacity: 1;
+}
+
+.mail-header-label {
+  font-size: 1.2rem;
+  color: #757575;
+  margin-right: 12px;
+  min-width: 3rem;
+  text-align: left;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.cc-bcc-toggle-btn {
+  margin-left: 8px;
+  padding: 0;
+  min-width: 32px;
+  min-height: 32px;
+  vertical-align: middle;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Force word-break and wrapping in editor and textareas */
+.ProseMirror, ngx-editor, .ngx-editor, textarea, .mat-input-element {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: pre-wrap !important;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Responsive radio group for mobile: stack vertically */
+@media (max-width: 600px) {
+  .radio-button-scale {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px;
+    
+  }
+  .radio-button-scale mat-radio-button {
+    margin: 4px 0 !important;
+    width: 100%;
+    color: var(--text-color) !important;
+  }
+}
+
+.radio-button-scale .mat-radio-button .mat-radio-label-content {
+  font-size: 1.5em;
+  font-weight: 500;
+}
+
+.radio-button-scale .mat-radio-label {
+  font-size: 1.3em !important;
+  font-weight: 600 !important;
+}
+
+::ng-deep .radio-button-scale .mat-radio-button .mat-radio-label,
+::ng-deep .radio-button-scale .mat-radio-button .mat-radio-label-content {
+  font-size: 2em !important;
+  font-weight: 700 !important;
+  line-height: 1.4 !important;
+}
+
+::ng-deep .radio-button-scale .mdc-label {
+  font-size: 1.4em !important;
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+  color:#1967d2 !important;
+}
+
+/* Remove border and shadow from the editor card in compose/forward mode */
+.example-card {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  overflow-wrap: break-word;
+    white-space: normal;
+    word-break: break-all;
+}
+
+::ng-deep .ProseMirror {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  font-size: 1.15rem !important;
+  line-height: 1.7rem !important;
+  color: var(--text-color) !important;
+}
+
+::ng-deep .mat-card-content .message-body-content,
+::ng-deep .mat-card-content .message-body-content * {
+  font-size: 1.5em !important;
+  line-height: 1.8 !important;
+  font-weight: 400 !important;
+}
+
+.submit-icon-btn {
+  background: var(--ion-toolbar-background);
+  color: #3b5bdb;
+  border: none;
+  border-radius: 30%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  /* box-shadow: 0 2px 8px rgba(60,64,67,.15); */
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+  left: 30px;
+}
+.submit-icon-btn:active {
+  background: #e0e0e0;
+}
+.attach-icon-btn {
+  background: var(--ion-toolbar-background);
+  color: #3b5bdb;
+  border: none;
+  border-radius: 30%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+  /* box-shadow: 0 2px 8px rgba(60,64,67,.15); */
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+  left: -30px;
+}
+.sticky-submit-footer,
+.sticky-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--ion-toolbar-background);
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.2);
+  padding: 24px 0 24px 0;
+  z-index: 200;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  display: flex;
+  flex-direction:row;
+  justify-content: space-around;
+  align-items: center;
+  height: 4rem;
+}
+
+
+.sticky-footer ion-icon[name="arrow-undo-outline"],
+.sticky-footer ion-icon[name="arrow-redo-outline"] {
+  font-size: 1.2rem;
+  width: 2.5rem;
+  height: 2rem;
+  font-weight: 400;
+  color: #3b5bdb;
+}
+
+.attachments-list, .no-attachments {
+  background: var(--background-secondary);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.no-attachments {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+.no-attachments ion-icon[name="document-outline"] {
+  font-size: 1.5em;
+  color: var(--icon-color);
+  margin-right: 20px;
+}
+
+.attachment-box {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.attachment-download-icon {
+  font-size: 1.7em;
+  margin-left: 12px;
+  vertical-align: middle;
+}
+
+.attachment-download-icon.gray {
+  color: #888;
+}
+
+.attachment-download-icon.blue {
+  color: #42a5f5;
+}
+
+.radio-button-scale-label{
+  font-size: 1.2em;
+  color: var(--icon-color);
+}
+
+.mat-mdc-radio-button.mat-accent{
+  --mdc-radio-unselected-icon-color: var(--icon-color);
+}
+
+ion-item-divider {
+  --background: var(--divider-color) !important;
+  background: var(--divider-color) !important;
+  border: none;
+  height: 1px !important;
+  min-height: 1px !important;
+  /* margin: 8px 0; */
+}

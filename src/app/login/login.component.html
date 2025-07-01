@@ -1,0 +1,62 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title class="ion-text-center" style="padding: 12px 24px;">Welcome to AI front office webmail</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="login-content">
+  <div class="login-center">
+    <ion-card class="login-card">
+      <ion-card-title>Please login to Webmail</ion-card-title>
+      <ion-card-header>
+        <ion-card-subtitle>
+          Or register your email below.<br/> We are proud that we run it on amazon cloud. So we provide your 100M is free.
+        </ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <form [formGroup]="addressForm" (ngSubmit)="onSubmit()">
+          <ion-item>
+            <ion-label position="floating">User name</ion-label>
+            <ion-input 
+            formControlName="userName" 
+            autocomplete="none" 
+            style="font-size: 1.15rem; font-weight: 400; "></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="floating">Password</ion-label>
+
+            <ion-input [type]="showPassword ? 'text' : 'password'"
+            formControlName="password" 
+            autocomplete="current-password" 
+            style="font-size: 1.15rem; font-weight: 400;"
+            ></ion-input>
+
+            <ion-button fill="clear" slot="end" size="small" (click)="togglePasswordVisibility()" type="button">
+              <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+            </ion-button>
+          </ion-item>
+          <div class="login-actions">
+            <ion-button expand="block" type="submit" color="primary">Login</ion-button>
+            <ion-button expand="block" fill="outline" color="primary" href="http://www.cmsmanhattan.com/Authorization.jsp?Login=">Registration</ion-button>
+          </div>
+          <div class="login-message" *ngIf="message">{{ message }}</div>
+        </form>
+      </ion-card-content>
+    </ion-card>
+  </div>
+  <div class="login-footer">
+    <p>Copyright: Copyright (c) 2002-2025</p>
+    <p>
+      <a href="http://www.cmsmanhattan.com" target="_blank">CENTER BUSINESS SOLUTIONS INC</a> -
+      <span class="support-email">support&#64;cmsmanhattan.com</span>
+    </p>
+  </div>
+</ion-content>
+
+
+
+
+
+
+
+ 

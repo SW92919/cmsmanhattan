@@ -1,0 +1,23 @@
+<input type="file" class="file-input"
+    [accept]="requiredFileType"
+    (change)="onFileSelected($event)" #fileUpload />
+
+<div class="file-upload">
+    {{fileName || "No file uploaded yet."}}
+    <button type='button'  mat-mini-fab color="primary" class="upload-btn"
+      (click)="fileUpload.click()">
+        <ion-icon name="attach-outline"></ion-icon>
+    </button>
+
+</div>
+
+<div class="progress">
+  <ion-progress-bar *ngIf="uploadProgress" [value]="uploadProgress / 100" color="primary"></ion-progress-bar>
+  <ion-icon 
+    class="cancel-upload" 
+    name="close-outline"
+    (click)="cancelUpload()" 
+    *ngIf="uploadProgress"
+    style="cursor:pointer; font-size: 1.7em; margin-left: 12px; color: var(--icon-color);"
+  ></ion-icon>
+</div>

@@ -1,0 +1,168 @@
+
+ <mat-card>
+	  <mat-button-toggle-group (change)="toggleChange($event)" name="fontStyle" aria-label="Font Style">
+	  </mat-button-toggle-group>
+ </mat-card>
+ 
+<!-- Sticky footer for Reply/Forward -->
+<div class="sticky-footer" *ngIf="!hasSubmitButton">
+  <button class="reply-icon-btn" (click)="replyMessage()">
+    <ion-icon name="arrow-undo-outline"></ion-icon>
+  </button>
+  <button class="forward-icon-btn" (click)="forwardMessage()">
+    <ion-icon name="arrow-redo-outline"></ion-icon>
+  </button>
+</div>
+ 	   
+<!-- Main content with extra bottom padding -->
+<div class="mail-message-content">
+<form [formGroup]="addressForm" novalidate (ngSubmit)="onSubmit()">
+  <!-- <div *ngIf="isMobile" style="color: red; font-weight: bold; text-align: center; margin-bottom: 10px;">
+    [DEBUG] Mobile mode is ACTIVE
+  </div> -->
+  <div class="row">
+    <div class="col col-address-label">
+      <mat-card class="example-card mail-header-fields">
+        <mat-card-content>
+          @if (hasTo) {
+            <div class="mail-header-field">
+              <span class="mail-header-label">From</span>
+              <input matInput class="mail-header-input" placeholder="" formControlName="from">
+            </div>
+            <ion-item-divider lines="full"></ion-item-divider>
+            <div class="mail-header-field">
+              <span class="mail-header-label">To</span>
+              <input matInput class="mail-header-input" placeholder="" formControlName="to">
+              <button mat-icon-button type="button" class="cc-bcc-toggle-btn" (click)="toggleCcBcc()">
+                <ion-icon [name]="showCcBcc ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+              </button>
+            </div>
+            <ion-item-divider lines="full"></ion-item-divider>
+            <div class="mail-header-field" *ngIf="showCcBcc">
+              <span class="mail-header-label">Cc</span>
+              <input matInput class="mail-header-input" placeholder="" formControlName="cc">
+            </div>
+            <ion-item-divider lines="full" *ngIf="showCcBcc"></ion-item-divider>
+            <div class="mail-header-field" *ngIf="showCcBcc">
+              <span class="mail-header-label">Bcc</span>
+              <input matInput class="mail-header-input" placeholder="" formControlName="bcc">
+            </div>
+            <ion-item-divider lines="full"></ion-item-divider>
+            <div class="mail-header-field">
+              <input matInput class="mail-header-input" placeholder="Subject" formControlName="subject">
+            </div>
+            <ion-item-divider lines="full"></ion-item-divider>
+          }
+          @else {
+            <div class="address-lable">From: {{messageContent?.from}}</div>
+            <div class="address-lable">To: {{messageContent?.to}}</div>
+            <div class="address-lable">Subject: {{messageContent?.subject}}</div>
+            <ion-item-divider lines="full"></ion-item-divider>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col">
+      
+    </div>
+  </div>
+  @if (files.length > 0 || showUploadFile ) {
+  <div class="row">
+    <div class="col">
+			<mat-card >
+			  <mat-card-content>
+			    
+			     @if (showUploadFile) {
+				 <app-file-upload  (uploadedFileEvent)="uploadedFile($event)"  ></app-file-upload>
+			     }
+	           	 @else
+	             {
+         	   	   <app-file-display  [files]=files  ></app-file-display>
+	             } 
+			  </mat-card-content>
+
+			</mat-card>
+    </div>
+  </div>
+  <br/>
+  }
+  <div class="row">
+    <div class="col">
+			<mat-card class="example-card">
+			  <mat-card-content>
+			    
+			     @if (hasBody) {
+         	   	  <ng-container *ngIf="!isMobile">
+         	   	  <ngx-editor-menu [editor]="editor"> </ngx-editor-menu>
+         	   	  </ng-container>
+         	   	  <ngx-editor [editor]="editor"  [placeholder]="'Type here...'" formControlName="body"  ></ngx-editor>
+			     }
+	           	 @else
+	             {
+         	   	   <div [innerHTML]="messageContent?.body"></div>
+	             } 
+			  </mat-card-content>
+
+			</mat-card>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <ion-item-divider lines="full"></ion-item-divider>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col">
+      <mat-card class="attachment-list">
+        <mat-card-content>
+          <div *ngIf="messageContent && messageContent.attachment.length > 0; else noAttachments" class="attachments-list attachment-box">
+            <div *ngFor="let file of messageContent.attachment" class="attachment-item">
+              <button (click)="downloadAttachment(file)" class="download-btn">
+                <ion-icon name="download-outline"></ion-icon>
+                {{ file.fileName }}
+              </button>
+            </div>
+            <span class="spacer"></span>
+            <ion-icon name="download-outline" class="attachment-download-icon blue"></ion-icon>
+          </div>
+          <ng-template #noAttachments>
+            <div class="no-attachments attachment-box">
+              <ion-icon name="document-outline"></ion-icon>
+              No attachments
+              <span class="spacer"></span>
+              <ion-icon name="download-outline" class="attachment-download-icon gray"></ion-icon>
+            </div>
+          </ng-template>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      @if (hasPriorityButton) { 
+      <mat-radio-group class="radio-button-scale"  formControlName="shipping">
+        <mat-radio-button value="free"><span class="radio-button-scale-label">High priority</span></mat-radio-button>
+        <mat-radio-button value="priority"><span class="radio-button-scale-label">Middle priority</span></mat-radio-button>
+        <mat-radio-button value="nextday"><span class="radio-button-scale-label">Low priority</span></mat-radio-button>
+      </mat-radio-group>
+       }
+    </div>
+  </div>
+  @if (hasSubmitButton) { 
+  }
+</form>
+</div>
+
+<!-- Add sticky submit button footer -->
+<div class="sticky-submit-footer" *ngIf="hasSubmitButton">
+  <button ion-button class="attach-icon-btn" (click)="attachFile()">
+    <ion-icon name="attach-outline"></ion-icon>
+  </button>
+  <button ion-button class="submit-icon-btn" (click)="onSubmit()">
+    <ion-icon name="send-outline"></ion-icon>
+  </button>
+</div>

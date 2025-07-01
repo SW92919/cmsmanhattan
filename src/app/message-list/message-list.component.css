@@ -1,0 +1,305 @@
+.mat-tab-label {
+    min-width: 10px !important;
+    padding: 2px;
+  }
+
+
+table {
+  width: 100%;
+}
+
+.table-container {
+  height: 500px;
+  overflow: auto;
+}
+
+.full-width-table {
+  width: 100%;
+
+}
+
+.small-tab-icon {
+  transform: translateX(-30%) scale(.35);
+  --border: solid;
+  position:relative; 
+  left:40px; 
+  top:-9px;
+}
+
+.mat-mdc-table .mdc-data-table__header-row {
+  height: 15px;
+}
+.mat-mdc-table .mdc-data-table__row{
+  height: 5px;
+}
+
+.mat-column-id {
+  word-wrap: break-word !important;
+  white-space: unset !important;
+  flex: 0 0 4% !important;
+  width: 10% !important;
+
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+
+  word-break: break-word;
+
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+
+.mat-column-name{
+  word-wrap: break-word !important;
+  white-space: unset !important;
+  flex: 0 0 25% !important;
+  width: 55% !important;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+
+  word-break: break-word;
+
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+
+.mat-column-file{
+  word-wrap: break-word !important;
+  white-space: unset !important;
+  flex: 0 0 6% !important;
+  width: 6% !important;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+
+  word-break: break-word;
+
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+
+
+.mat-column-size{
+  word-wrap: break-word !important;
+  white-space: unset !important;
+  flex: 0 0 10% !important;
+  width: 10% !important;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+
+  word-break: break-word;
+
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+
+.mat-column-receivedDate{
+  word-wrap: break-word !important;
+  white-space: unset !important;
+  flex: 0 0 2% !important;
+  width: 15% !important;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+
+  word-break: break-word;
+
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+
+.mat-column-status {
+  word-wrap: break-word !important;
+  white-space: unset !important;
+  flex: 0 0 5% !important;
+  width: 10% !important;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+
+  word-break: break-word;
+
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+}
+
+.example-button-row button,
+.example-button-row a {
+  margin-right: 28px;
+}
+
+/* Initially, hide the mobile view */
+.mobile-view {
+    display: none;
+    /* height: 100%; */
+}
+
+/* Style for the mobile message list items */
+.message-item {
+    touch-action: pan-y !important;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.message-item h2 {
+    font-size: 1.3rem; /* */
+    font-weight: normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-color);
+}
+
+.message-item p {
+    font-size: 1.1em; 
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.message-item .date {
+
+    margin-top: 4px; /* Added for spacing */
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+}
+
+/* Make unread messages bold */
+.message-item.unread h2, .message-item.unread p {
+    font-weight: bold;
+    color: #000;
+}
+
+.message-item ion-avatar {
+    margin-right: 16px; /* Adjust this value to increase/decrease space */
+}
+
+/* Styles for swipe-to-reveal options */
+.archive-option, .delete-option {
+    background-color: #f0f0f0; /* Start with a neutral grey background */
+    transition: background-color 0.3s ease-in-out; /* Smoothly transition the background color */
+}
+
+/* When the item is swiped, Ionic adds a class that we can use to change the color */
+ion-item-sliding.item-sliding-active-slide .archive-option {
+    background-color: #2dd36f; /* Ionic 'success' green */
+}
+
+ion-item-sliding.item-sliding-active-slide .delete-option {
+    background-color: #eb445a; /* Ionic 'danger' red */
+}
+
+/* Style for selected items in selection mode */
+.message-item.selected {
+  --background: var(--icon-bg); /* A light blue background for selected items */
+}
+
+.message-item.selected .avatar-circle {
+  background-color: #3880ff; /* A darker blue for the avatar of selected items */
+}
+
+/* Custom styles for the Floating Action Button */
+ion-fab-button {
+    --background: #2dd36f; /* Use the same 'success' green */
+    --background-activated: #28ba62; /* A slightly darker green for when pressed */
+    --color: white; /* Make the icon/text color white */
+}
+
+/* Simple avatar styling */
+.avatar-circle {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background-color: #3880ff; /* Ionic primary color */
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: 400;
+}
+
+/* Media query for mobile devices */
+@media (max-width: 768px) {
+    .desktop-view {
+        display: none; /* Hide the table on small screens */
+    }
+
+    .mobile-view {
+        display: block; /* Show the list on small screens */
+    }
+
+    /* 
+      Hide the tab bar on mobile as well. 
+      ::ng-deep is used to pierce style encapsulation and reliably hide the tab header.
+    */
+    :host ::ng-deep .mat-tab-header {
+      display: none;
+    }
+
+    /* Ensure proper scrolling for mobile list */
+    .mobile-view ion-list {
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Ensure ion-item-sliding doesn't interfere with scrolling */
+    .mobile-view ion-item-sliding {
+        touch-action: pan-y;
+    }
+}
+
+/* For ngx-editor or any content-editable area */
+ngx-editor, .ngx-editor, .ProseMirror, .mat-input-element, textarea {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+::ng-deep .NgxEditor {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  font-size: 1.0rem !important;
+  line-height: 1.7rem !important;
+  color: var(--ion-text-color) !important;
+}
+::ng-deep .NgxEditor__Content{
+  padding: 0px !important;
+  color: var(--ion-text-color) !important;
+
+
+}
+
+.avatar-bg {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3em;
+}
+ion-item {
+  --border-width: 0 0 1px 0;
+  --border-style: solid;
+  --border-color: var(--divider-color, #e0e0e0);
+}

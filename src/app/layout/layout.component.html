@@ -1,0 +1,91 @@
+<!-- The <ion-app> is the root component for an Ionic app. -->
+<ion-app>
+
+  <!-- The <ion-menu> is the side menu component. -->
+  <ion-menu content-id="main-content" (ionWillOpen)="onMenuWillOpen()">
+    <ion-header>
+      <ion-toolbar class="menu-header-toolbar">
+        <ion-title>Webmail</ion-title>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <!-- Your existing folders component goes here -->
+      <app-folders (logout)="logOut()"></app-folders>
+    </ion-content>
+  </ion-menu>
+
+  <!-- The main content area. The menu will slide out over this. -->
+  <div class="ion-page" id="main-content">
+    <ion-header>
+      <!-- Normal Toolbar -->
+      <ion-toolbar *ngIf="!selectionModeActive && !currentMessageSubject" class="normal-toolbar">
+        <ion-buttons slot="start">
+          <!-- The menu button that toggles the <ion-menu> -->
+          <ion-menu-button></ion-menu-button>
+        </ion-buttons>
+        <ion-title>{{ title }}</ion-title>
+      </ion-toolbar>
+
+      <!-- Message View Toolbar -->
+      <ion-toolbar *ngIf="!selectionModeActive && currentMessageSubject" class="normal-toolbar">
+        <ion-buttons slot="start">
+          <ion-button (click)="closeMessageView()" >
+            <ion-icon name="arrow-back-outline" ></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <ion-buttons slot="end">
+          <ion-button class="action-button" (click)="saveMessage()">
+            <ion-icon slot="icon-only" name="archive-outline"></ion-icon>
+          </ion-button>
+          <ion-button class="action-button" (click)="deleteCurrentMessage()">
+            <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <!-- <ion-title class="message-subject-title">{{ currentMessageSubject }}</ion-title> -->
+      </ion-toolbar>
+
+      <!-- Contextual Action Toolbar -->
+      <ion-toolbar *ngIf="selectionModeActive" class="contextual-toolbar">
+        <ion-buttons slot="start">
+          <ion-button (click)="clearSelectionMode()">
+            <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+          </ion-button>
+          <span class="selection-title">{{ selectionCount }} selected</span>
+        </ion-buttons>
+        
+        <ion-buttons slot="end">
+          <ion-button class="action-button" (click)="archiveSelected()">
+            <ion-icon slot="icon-only" name="archive-outline"></ion-icon>
+          </ion-button>
+          <ion-button class="action-button" (click)="deleteSelected()">
+            <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+
+      <!-- "Select All" Toolbar -->
+      <ion-toolbar *ngIf="selectionModeActive" class="select-all-toolbar">
+        <ion-item lines="none" class="select-all-item" (click)="toggleSelectAll()">
+          <ion-checkbox class="select-all-checkbox" slot="start" [checked]="areAllMessagesSelected()" mode="md"></ion-checkbox>
+          <ion-label class="select-all-label">Select All</ion-label>
+        </ion-item>
+      </ion-toolbar>
+  
+    </ion-header>
+    <ion-content class="ion-padding">
+      <!-- 
+        The primary router-outlet for the main content.
+        The message list and message detail views will be rendered here.
+      -->
+      <router-outlet (activate)="onActivate($event)"></router-outlet>
+      
+      <!-- Floating Action Button for composing a new message -->
+      <ion-fab *ngIf="!selectionModeActive && !isComposing" slot="fixed" vertical="bottom" horizontal="end">
+        <ion-fab-button (click)="onComposeClick()">
+          <ion-icon name="create-outline"></ion-icon>
+        </ion-fab-button>
+      </ion-fab>
+    </ion-content>
+  </div>
+
+</ion-app>

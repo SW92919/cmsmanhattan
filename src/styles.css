@@ -1,0 +1,89 @@
+/* You can add global styles to this file, and also import other style files */
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+.mat-body, .mat-body-2, .mat-typography .mat-body, .mat-typography .mat-body-2, .mat-typography {
+    font: 400 18px / 20px Roboto, sans-serif;
+}
+
+:root {
+  --background: #fff;
+  --background-secondary: #f5f5f5;
+  --text-color: #222;
+  --text-secondary: #535353;
+  --primary: #0099ff;
+  --primary-contrast: #fff;
+  --card-bg: #fff;
+  --border-color: #e0e0e0;
+  --icon-color: #3b5bdb;
+  --icon-bg: #e3efff;
+  --menu-selected-bg: #c2e7ff;
+  --menu-selected-text: #001d35;
+  --ion-background-color: #fff;
+  --ion-text-color: #434343;
+  --ion-item-background: #fff;
+  --ion-toolbar-background: #f1f1f1;
+  --ion-toolbar-color: #222;
+  --login-toolbar-background: #f0f0f0;
+  --divider-color: #e0e0e0; /* Light mode divider */
+}
+
+body.dark {
+  --background: #131313;
+  --background-secondary: #0c0c0c;
+  --text-color: #c1c1c1;
+  --text-secondary: #a0a0a0;
+  --primary: #0099ff;
+  --primary-contrast: #fff;
+  --card-bg: #23272b;
+  --border-color: #333;
+  --icon-color: #f0f0f0;
+  --icon-bg: #23272b;
+  --menu-selected-bg: #0099ff;
+  --menu-selected-text: #fff;
+  --ion-background-color: #18191a;
+  --ion-text-color: #c1c1c1;
+  --ion-item-background: #18191a;
+  --ion-toolbar-background: #1f1f1f;
+  --ion-toolbar-color: #fff;
+  --login-toolbar-background: #1f1f1f;
+  --divider-color: #444; /* Dark mode divider, adjust as needed */
+}
+
+body, html {
+  background: var(--background);
+  color: var(--text-color);
+}
+
+/* Example usage for cards, menus, etc. */
+.card, mat-card, ion-card {
+  background: var(--card-bg) !important;
+  color: var(--text-color) !important;
+  line-height: 1.7rem;
+}
+
+.menu-container, ion-menu, .side-menu {
+  background: var(--background);
+  color: var(--text-color);
+}
+
+ion-item.selected, .menu-container ion-item.selected {
+  background: var(--menu-selected-bg) !important;
+  color: var(--menu-selected-text) !important;
+  border-radius: 10px;
+}
+
+/* Icon color */
+ion-icon, .mat-icon {
+  color: var(--icon-color) !important;
+}
+
+/* Accent button */
+.ion-fab-button, .mat-fab, .mat-mini-fab {
+  background: var(--primary) !important;
+  color: var(--primary-contrast) !important;
+}
+
+/* Add more as needed for your app's components */
+  

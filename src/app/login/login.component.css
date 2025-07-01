@@ -1,0 +1,210 @@
+.example-card {
+  max-width: 400px;
+}
+
+.example-header-image {
+  background-image: url('https://a.fsdn.com/allura/p/cmsmanhattan/icon?1428165856');
+  background-size: cover;
+}
+
+.login-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+}
+
+.login-center {
+  flex: 1 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0 8px;
+  background: var(--background) !important;
+}
+
+ion-card-content, ion-card-header {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+.login-card ion-card-title {
+  font-size: 1.3rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  margin-top: 1.5rem;
+  color: var(--ion-text-color);
+}
+
+.login-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.login-footer {
+  flex-shrink: 0;
+  width: 100%;
+  text-align: center;
+  color: var(--ion-text-color);
+  font-size: 0.95rem;
+  padding: 12px 0 8px 0;
+  background: var(--ion-toolbar-background);
+}
+
+.login-footer .support-email {
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.login-message {
+  color: red;
+  margin-top: 12px;
+  text-align: center;
+}
+
+ion-header, ion-toolbar {
+  min-height: 84px; /* 1.5x typical 56px toolbar height */
+  --min-height: 84px;
+}
+
+ion-toolbar {
+  --background: var(--login-toolbar-background) !important;
+  background: var(--login-toolbar-background) !important;
+  min-height: 84px;
+  --min-height: 84px;
+}
+
+ion-title {
+  font-size: 1.3rem;
+  text-align: center;
+  color: var(--ion-text-color);
+  font-weight: 500;
+  letter-spacing: 0.00em;
+}
+
+ion-card-subtitle {
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: var(--ion-text-color);
+  text-wrap: wrap;
+  letter-spacing: 0.02em;
+  text-transform: none !important;
+  padding: 0 12px;
+}
+
+.login-card form {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center children horizontally */
+}
+
+.login-card ion-item {
+  width: 100%;
+  max-width: 320px; /* or your preferred width */
+  margin: 0 auto;
+  --padding-start: 0;
+  --inner-padding-end: 0;
+}
+
+.login-actions ion-button {
+  width: 200%;
+  max-width: 400px;
+  margin-left: -50%;
+  margin-right: 0;
+  letter-spacing: 0.08em;
+  font-weight: 400;
+  font-size: 1.1rem;
+  text-transform: none !important;
+  padding: 0 8px;
+  border-radius: 16px;
+  --background: #007bff;
+  --color: #fff;
+  --border-radius: 16px;
+  height: 3.0rem;
+  min-height: 3.0rem;
+  line-height: 3.0rem;
+}
+
+#userName {
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --padding-top: 12px;
+  --padding-bottom: 8px;
+  color: #666;
+}
+
+#password {
+  --padding-start: 8px;  
+  color: #666;
+}
+ion-button[slot="end"] {
+  margin-left: 4px;
+  font-size: 1.2rem;
+  position: relative;
+  top: 25px
+}
+
+ion-input input:-webkit-autofill,
+ion-input input:-webkit-autofill:focus,
+ion-input input:-webkit-autofill:hover,
+ion-input input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  background-color: #fff !important;
+  color: #222 !important;
+  caret-color: #222 !important;
+  border: none !important;
+}
+
+ion-input input {
+  background-color: #fff !important;
+}
+
+ion-item.item-has-value,
+ion-item.item-has-focus {
+  --highlight-background: #fff !important;
+  background: #fff !important;
+}
+
+::ng-deep ion-input input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  background-color: #fff !important;
+  color: #222 !important;
+}
+
+/* Ensure floating label is fully visible for ion-input */
+ion-item ion-label {
+  left: 0 !important;
+  padding-left: 8px !important;
+  background: var(--ion-background-color);
+  z-index: 1;
+  max-width: 100%;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+ion-item ion-input input {
+  padding-left: 8px !important;
+}
+
+
+
+
+

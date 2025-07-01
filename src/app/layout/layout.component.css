@@ -1,0 +1,103 @@
+ion-fab-button {
+    --background: #50c2f8; /* A lighter, vibrant green */
+  }
+  
+/* Add some spacing from the screen edges */
+ion-fab {
+  margin-bottom: 1.5rem;
+  margin-right: 1.2rem;
+}
+
+/* Add spacing between the header action buttons */
+.action-button {
+  margin-right: 12px;
+  margin-left: 12px;
+}
+
+/* Style for the custom selection title in the header */
+.selection-title {
+  font-size: 1.5rem;
+  font-weight: 500;
+  padding-left: 16px;
+  color: var(--text-secondary);
+}
+
+/* Custom styles for the contextual action toolbar */
+.contextual-toolbar {
+  --background: var(--ion-toolbar-background); /* Light gray */
+  --color: #333; /* Dark gray for icons and text */
+  --min-height: 4.5rem; /* Approx 1.5x previous height */
+}
+
+/* Styles for the "Select All" toolbar and item */
+.select-all-toolbar {
+  --background: var(--ion-toolbar-background);
+  --min-height: 48px;
+  --padding-top: 0;
+  --padding-bottom: 0;
+}
+.select-all-toolbar ion-checkbox {
+  --background: var(--ion-toolbar-color);
+  --color: var(--text-secondary);
+}
+.select-all-item {
+  --background: var(--ion-toolbar-background);
+  --padding-start: 16px;
+  color: #333;
+}
+
+.select-all-label {
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+
+/* Custom styles for the normal Inbox toolbar */
+.normal-toolbar {
+  --min-height: 5.4rem; /* Increased from 4.5rem to 5.4rem (1.2x) */
+  min-height: 5.4rem;
+}
+
+.normal-toolbar ion-title {
+  font-size: 1.5rem; /* Increased font size */
+  font-weight: 400;
+}
+
+.normal-toolbar ion-buttons[slot='end'] {
+  margin-right: 2.0rem;
+}
+
+/* Custom styles for the side menu header */
+.menu-header-toolbar {
+  --min-height: 4.5rem;
+}
+
+.menu-header-toolbar ion-title {
+  font-size: 1.3rem;
+  font-weight: 450;
+  letter-spacing: 0.1rem;
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #444;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.logout-btn ion-icon {
+  font-size: 24px;
+  vertical-align: middle;
+}
+
+ion-toolbar ion-button ion-icon {
+  font-size: 1.5rem !important;
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+} 

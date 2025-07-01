@@ -1,0 +1,14 @@
+{
+  "/api": {
+    "target": "http://www.cmsmanhattan.com:8097",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/auth": {
+    "target": "http://www.cmsmanhattan.com:8097",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}

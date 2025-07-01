@@ -1,0 +1,37 @@
+.file-input {
+  display: none;
+}
+
+.upload-btn.mat-mini-fab, .upload-btn {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.upload-btn ion-icon[name="attach-outline"] {
+  font-size: 1.5rem;
+  width: 1.5em;
+  height: 1.5em;
+  vertical-align: middle;
+  color: var(--icon-color) !important;
+  filter: none !important;
+  background: var(--background-secondary) !important;
+}
+
+body.dark .upload-btn ion-icon[name="attach-outline"] {
+  color: #fff !important;
+  filter: none !important;
+}
+
+.file-upload {
+  background: var(--background-secondary);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  margin-bottom: 0px;
+  display: flex;
+  align-items: center;
+  justify-content:space-around;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}

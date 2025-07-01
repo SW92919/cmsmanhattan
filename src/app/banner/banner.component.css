@@ -1,0 +1,8 @@
+.example-card {
+  max-width: 400px;
+}
+
+.example-header-image {
+  background-image: url('https://a.fsdn.com/allura/p/cmsmanhattan/icon?1428165856');
+  background-size: cover;
+}

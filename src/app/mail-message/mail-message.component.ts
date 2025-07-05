@@ -2,6 +2,7 @@ import { Component, ElementRef, inject, Input, OnInit, ViewChild, OnDestroy, Eve
 import { CommonModule } from '@angular/common';
 import { Platform } from '@angular/cdk/platform';
 import { IonicModule } from '@ionic/angular';
+import { Router } from '@angular/router';
 
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -13,18 +14,28 @@ import { MessageDataApiService } from '../messageDataService/message-data-api.se
 import { MatDividerModule } from '@angular/material/divider';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { Editor, NgxEditorModule,  toHTML } from 'ngx-editor';
+import { Editor, NgxEditorModule, toHTML } from 'ngx-editor';
 import { SendApiService } from '../sendService/send-api.service';
 import { MailMessageSendRequest } from '../sendService/new-message-api-request';
 import { FileUploadComponent } from '../file-upload/file-upload.component';
 import { FileDisplayComponent } from '../file-display/file-display.component';
-import { MatIconModule} from '@angular/material/icon';
+import { MatIconModule } from '@angular/material/icon';
 import { MessageContentResponse, FileItem } from '../messageDataService/mail-message-api-response';
 import { MessageActionService } from './message-action.service';
 import { Subscription } from 'rxjs';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { ToastController } from '@ionic/angular';
+
+// Utility type for merged attachment info
+interface MergedAttachment {
+	fileName: string;
+	size?: string;
+	contentType?: string;
+	file?: any;
+	charset?: string;
+	saved?: boolean;
+}
 
 @Component({
 	selector: 'app-mail-message',
@@ -54,14 +65,15 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 
 	@Input() messageNumber: number = 0;
 	@Input() folder: string = '';
-	files: string[] = [];
+	files: { fileName: string, contentType: string, size: number }[] = [];
 	@Output() removeTab = new EventEmitter();
 	@Output() newClicked = new EventEmitter<void>();
 	@Output() messageSent = new EventEmitter<void>();
-	
+	@Output() navigateToSent = new EventEmitter<void>();
+
 	closeTab() {
-	    this.removeTab.emit();
-	  }
+		this.removeTab.emit();
+	}
 
 	editor!: Editor;
 	html = '';
@@ -75,7 +87,6 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 	@ViewChild('receivedDate') receivedDate!: ElementRef;
 
 	hasSubmitButton: boolean = false;
-	hasPriorityButton: boolean = false;
 	showSendFields: boolean = false;
 	messageContent: MessageContentResponse['mailMessage'] | null = null;
 	isMobile: boolean = false;
@@ -85,16 +96,27 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 	showCcBcc = false;
 
 	private saveSub?: Subscription;
+	mergedAttachments: MergedAttachment[] = [];
+	cleanedBody: string = '';
 
-	constructor(private messageDataApiService: MessageDataApiService, private sendApiService: SendApiService, private platform: Platform, private messageActionService: MessageActionService, private toastController: ToastController) { }
+	constructor(
+		private messageDataApiService: MessageDataApiService,
+		private sendApiService: SendApiService,
+		private platform: Platform,
+		private messageActionService: MessageActionService,
+		private toastController: ToastController,
+		private router: Router
+	) { }
 
 	ngOnChanges(changes: SimpleChanges): void {
+		// console.log('MailMessageComponent ngOnChanges', changes);
 		if (changes['messageNumber'] && changes['messageNumber'].currentValue !== changes['messageNumber'].previousValue) {
 			this.fetchMessage();
 		}
 	}
 
 	ngOnInit(): void {
+		// console.log('MailMessageComponent ngOnInit', this.messageNumber, this.folder);
 		this.editor = new Editor();
 		this.isMobile = this.platform.ANDROID || this.platform.IOS;
 		this.saveSub = this.messageActionService.save$.subscribe(() => this.saveMessage());
@@ -117,15 +139,30 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 			this.hasSubject = true;
 			this.hasBody = true;
 			this.hasSubmitButton = true;
-			this.hasPriorityButton = true;
 			this.showSendFields = true;
 		} else {
 			this.hasTo = false;
 			this.hasSubject = false;
 			this.hasBody = false;
 			this.hasSubmitButton = false;
-			this.hasPriorityButton = false;
 			this.showSendFields = false;
+			switch (this.folder) {
+				case "SENT":
+					this.folder = "Sent";
+					break;
+				case "DRAFT":
+					this.folder = "Draft";
+					break;
+				case "ARCHIVE":
+					this.folder = "Archive";
+					break;
+				case "OUTBOX":
+					this.folder = "Outbox";
+					break;
+				case "SPAM":
+					this.folder = "Spam";
+					break;
+			}
 			const requestPayload = {
 				folder: this.folder,
 				messageNumber: this.messageNumber,
@@ -144,16 +181,20 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 							subject: messageContentResponse.mailMessage.subject || '',
 							body: messageContentResponse.mailMessage.body || '',
 							receivedDate: messageContentResponse.mailMessage.receivedDate || '',
-							shipping: null
+							shipping: null,
+							attachment: null
 						});
+						this.updateMergedAttachments();
 					} else {
 						this.messageContent = null;
+						this.mergedAttachments = [];
 						this.addressForm.reset();
 						console.error('[fetchMessage] No mailMessage in response:', messageContentResponse);
 					}
 				},
 				error: err => {
 					this.messageContent = null;
+					this.mergedAttachments = [];
 					this.addressForm.reset();
 					console.error('[fetchMessage] Error fetching message:', err);
 				}
@@ -170,7 +211,8 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 		subject: "",
 		body: "",
 		receivedDate: "",
-		shipping: ['free', Validators.required]
+		shipping: ['free', Validators.required],
+		attachment: [null]
 	});
 
 	hasBcc = false;
@@ -178,21 +220,20 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 	hasTo = false;
 	hasSubject = false;
 	hasBody = false;
-	showUploadFile = false ;
-	
-	covertToAttachment( file:string[] ): FileItem[]{
+	showUploadFile = false;
+
+	covertToAttachment(file: string[]): FileItem[] {
 		let attachment: FileItem[] = [];
 		file.forEach(element => {
-			attachment.push({contentType:'',fileName:element, file:{path:'',name:''},charset:'',saved:false});
+			attachment.push({ contentType: '', fileName: element, file: { path: '', name: '' }, charset: '', saved: false });
 		});
-		
+
 		return attachment;
 	}
 
 	onSubmit(): void {
 		this.isReplyMode = false;
 		this.isForwardMode = false;
-		// console.log('🔍 MailMessage - Submitting message...');
 		let editorValue = this.addressForm.get('body')?.value;
 		let htmlBody = '';
 		if (typeof editorValue === 'string') {
@@ -202,7 +243,15 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 		} else {
 			htmlBody = '';
 		}
-		
+
+		const attachments = this.files.map(file => ({
+			contentType: file.contentType,
+			fileName: file.fileName,
+			file: { path: '', name: '' },
+			charset: '',
+			saved: false
+		}));
+
 		const sendRequest = {
 			messageNumber: "",
 			to: this.addressForm.get('to')?.value as string,
@@ -212,18 +261,15 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 			subject: this.addressForm.get('subject')?.value as string,
 			body: htmlBody,
 			receivedDate: this.addressForm.get('receivedDate')?.value as string,
-			html:true,
-			attachment: this.covertToAttachment(this.files) 
+			html: true,
+			attachment: attachments
 		};
-		
-		// console.log('🔍 MailMessage - Sending message with request:', sendRequest);
-		
+
 		this.sendApiService.sendMail(sendRequest).subscribe(response => {
-			// console.log("🔍 MailMessage - Message sent successfully:", response);
-			// console.log("🔍 MailMessage - Current folder context:", this.folder);
 			this.saveMessage();
 			this.closeTab();
 			this.messageSent.emit();
+			this.navigateToSentMessages();
 		})
 	}
 
@@ -250,14 +296,14 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 			subject: subject,
 			body: body,
 			receivedDate: '',
-			shipping: null
+			shipping: null,
+			attachment: null
 		});
 
 		this.hasTo = true;
 		this.hasSubject = true;
 		this.hasBody = true;
 		this.hasSubmitButton = true;
-		this.hasPriorityButton = true;
 		this.showSendFields = true;
 	}
 
@@ -272,7 +318,7 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 		let body: string = "<br/><br/>  -----forwarded Message-----" +
 			"<br/> From: " + this.addressForm.get('from')?.value +
 			"<br/> To: " + this.addressForm.get('to')?.value +
-		  "<br/> subject: " + this.addressForm.get('subject')?.value +
+			"<br/> subject: " + this.addressForm.get('subject')?.value +
 			"<br/> " + this.addressForm.get('body')?.value as string;
 
 		this.addressForm.setValue({
@@ -283,14 +329,14 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 			subject: subject,
 			body: body,
 			receivedDate: '',
-			shipping: null
+			shipping: null,
+			attachment: null
 		});
-		
+
 		this.hasTo = true;
 		this.hasSubject = true;
 		this.hasBody = true;
 		this.hasSubmitButton = true;
-		this.hasPriorityButton = true;
 		this.showSendFields = true;
 	}
 
@@ -301,7 +347,6 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 		this.hasSubject = false;
 		this.hasBody = false;
 		this.hasSubmitButton = false;
-		this.hasPriorityButton = false;
 		this.showSendFields = false;
 		this.ngOnInit();
 	}
@@ -314,15 +359,13 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 		alert('Are you sure move the message ?');
 	}
 
-	attachFile()
-	{
-	this.showUploadFile = true ;
+	attachFile() {
+		this.showUploadFile = true;
 	}
 
-    uploadedFile( fileName: string ){
-		this.files.push(fileName);
-		this.showUploadFile = false ;
-		//this.files.length
+	uploadedFile(file: { fileName: string, contentType: string, size: number }) {
+		this.files.push(file);
+		this.showUploadFile = false;
 	}
 
 	newMesssage() {
@@ -332,28 +375,28 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 	getUserName(): string {
 		return <string>sessionStorage.getItem('userName');
 	}
-	
-	toggleChange(event:any) {
-	    const toggle = event.source;
-	    //if (toggle && event.value.some(item => item == toggle.value)) {
-	        toggle.buttonToggleGroup.value = [toggle.value];
-	   // }
+
+	toggleChange(event: any) {
+		const toggle = event.source;
+		//if (toggle && event.value.some(item => item == toggle.value)) {
+		toggle.buttonToggleGroup.value = [toggle.value];
+		// }
 	}
 
-	async downloadAttachment(file: FileItem) {
+	async downloadAttachment(file: MergedAttachment) {
 		if (!this.messageContent) return;
-		
+
 		const folder = this.folder;
 		const messageNumber = Number(this.messageContent.messageNumber);
 		const filename = file.fileName;
-		const userName = this.addressForm.get('to')?.value as string;
-		
+		const userName = this.getUserName(); // Use getUserName() instead of form value
+
 		try {
 			const response = await this.messageDataApiService.attachment(folder, messageNumber, filename, userName).toPromise();
-			
+
 			// Check if we're running on a native platform (mobile)
 			if (Capacitor.isNativePlatform()) {
-				await this.downloadFileMobile(response, filename);
+				await this.downloadFileMobile(response as Blob, filename);
 			} else {
 				// Use browser download for web
 				this.downloadFileWeb(response, filename);
@@ -363,10 +406,12 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 			this.showToast('Error downloading file', 'danger');
 		}
 	}
-
-	private downloadFileWeb(response: any, filename: string) {
-		const blob = new Blob([response as any]);
-		const url = window.URL.createObjectURL(blob);
+	private downloadFileWeb(response: Blob | undefined, filename: string) {
+		if (!response) {
+			this.showToast('Error downloading file', 'danger');
+			return;
+		}
+		const url = window.URL.createObjectURL(response);
 		const a = document.createElement('a');
 		a.href = url;
 		a.download = filename;
@@ -376,33 +421,73 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 		window.URL.revokeObjectURL(url);
 	}
 
-	private async downloadFileMobile(response: any, filename: string) {
+	private async downloadFileMobile(response: Blob, filename: string) {
+		// Request storage permission at runtime (Android only)
+		if (Capacitor.getPlatform() === 'android') {
+			const permStatus = await Filesystem.requestPermissions();
+			if (permStatus.publicStorage !== 'granted') {
+				this.showToast('Storage permission denied', 'danger');
+				return;
+			}
+		}
+
 		try {
-			// Convert response to base64 if it's not already
-			let base64Data: string;
-			if (typeof response === 'string') {
-				base64Data = response;
-			} else if (response instanceof ArrayBuffer) {
-				base64Data = this.arrayBufferToBase64(response);
-			} else if (response instanceof Blob) {
-				base64Data = await this.blobToBase64(response);
+			// Convert Blob to base64
+			const base64Data = await this.blobToBase64(response);
+
+			// Clean filename to be safe for filesystem
+			const safePath = filename.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+
+			let result;
+			let userMessage = '';
+
+			if (Capacitor.getPlatform() === 'android') {
+				try {
+					// BEST: Try External Storage Downloads folder (most accessible)
+					result = await Filesystem.writeFile({
+						path: `Download/${safePath}`,
+						data: base64Data,
+						directory: Directory.ExternalStorage,
+						recursive: true
+					});
+					userMessage = `📁 File saved to Downloads folder: ${filename}`;
+				} catch (error) {
+					console.log('External storage failed, trying Documents:', error);
+					// FALLBACK: App Documents folder
+					result = await Filesystem.writeFile({
+						path: safePath,
+						data: base64Data,
+						directory: Directory.Documents,
+						recursive: true
+					});
+					userMessage = `📁 File saved to app Documents: ${filename}\nFind it in: Files app > Internal Storage > Android > data > [app] > files`;
+				}
+			} else if (Capacitor.getPlatform() === 'ios') {
+				// iOS: Documents directory is the standard location
+				result = await Filesystem.writeFile({
+					path: safePath,
+					data: base64Data,
+					directory: Directory.Documents,
+					recursive: true
+				});
+				userMessage = `📁 File saved: ${filename}\nFind it in: Files app > On My iPhone > [App Name]`;
 			} else {
-				throw new Error('Unsupported response format');
+				// Fallback for other platforms
+				result = await Filesystem.writeFile({
+					path: safePath,
+					data: base64Data,
+					directory: Directory.Documents,
+					recursive: true
+				});
+				userMessage = `📁 File saved: ${filename}`;
 			}
 
-			// Write file to device
-			const result = await Filesystem.writeFile({
-				path: filename,
-				data: base64Data,
-				directory: Directory.Documents,
-				recursive: true
-			});
-
-			this.showToast(`File saved: ${filename}`, 'success');
+			this.showToast(userMessage, 'success');
 			console.log('File saved to:', result.uri);
+
 		} catch (error) {
 			console.error('Error saving file to device:', error);
-			this.showToast('Error saving file to device', 'danger');
+			this.showToast('❌ Error saving file to device', 'danger');
 		}
 	}
 
@@ -443,4 +528,61 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 		this.showCcBcc = !this.showCcBcc;
 	}
 
+	private navigateToSentMessages(): void {
+		// Emit event to notify parent component
+		this.navigateToSent.emit();
+
+		// Navigate to sent messages page
+		this.router.navigate(['/app'], { queryParams: { folder: 'SENT' } });
+	}
+
+	private parseAttachmentsFromBody(body: string): MergedAttachment[] {
+		if (!body) return [];
+		const div = document.createElement('div');
+		div.innerHTML = body;
+		const links = div.querySelectorAll('a[href*="/api/attachment"]');
+		const attachments: MergedAttachment[] = [];
+		links.forEach(link => {
+			const fileName = link.textContent?.trim() || '';
+			// Try to find size info in the text after the link (e.g., (9.934 kB))
+			let size = '';
+			const next = link.nextSibling;
+			if (next && next.nodeType === Node.TEXT_NODE) {
+				const match = (next.textContent || '').match(/\(([^)]+)\)/);
+				if (match) size = match[1];
+			}
+			attachments.push({ fileName, size });
+		});
+		return attachments;
+	}
+
+	private mergeAttachmentInfo(backend: FileItem[], parsed: MergedAttachment[]): MergedAttachment[] {
+		const map = new Map<string, MergedAttachment>();
+		backend.forEach(item => {
+			map.set(item.fileName, { ...item });
+		});
+		parsed.forEach(item => {
+			if (map.has(item.fileName)) {
+				map.set(item.fileName, { ...map.get(item.fileName), ...item });
+			} else {
+				map.set(item.fileName, item);
+			}
+		});
+		return Array.from(map.values());
+	}
+
+	private cleanBody(body: string): string {
+		if (!body) return '';
+		// Remove lines like: Attachment : <a ...>...</a>(size)
+		// This regex removes the whole line containing the attachment link
+		// Also removes any <br> before/after
+		return body.replace(/(<br\s*\/?>)?\s*Attachment\s*:[^<]*<a [^>]+>[^<]+<\/a>\([^\)]+\)(<br\s*\/?>)?/gi, '');
+	}
+
+	private updateMergedAttachments() {
+		const backend = this.messageContent?.attachment || [];
+		const parsed = this.parseAttachmentsFromBody(this.messageContent?.body || '');
+		this.mergedAttachments = this.mergeAttachmentInfo(backend, parsed);
+		this.cleanedBody = this.cleanBody(this.messageContent?.body || '');
+	}
 }

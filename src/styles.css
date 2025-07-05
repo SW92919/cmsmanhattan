@@ -27,6 +27,7 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
   --ion-toolbar-color: #222;
   --login-toolbar-background: #f0f0f0;
   --divider-color: #e0e0e0; /* Light mode divider */
+  --icon-star-color: #0099ff;
 }
 
 body.dark {
@@ -49,6 +50,7 @@ body.dark {
   --ion-toolbar-color: #fff;
   --login-toolbar-background: #1f1f1f;
   --divider-color: #444; /* Dark mode divider, adjust as needed */
+  --icon-star-color: #0099ff;
 }
 
 body, html {

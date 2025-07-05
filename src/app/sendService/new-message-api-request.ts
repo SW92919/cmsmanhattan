@@ -14,17 +14,17 @@ export interface MailMessageSendRequest {
 }
 
 
-export const 	mailMessageSendRequest: MailMessageSendRequest = {
-		messageNumber  : "",
-		to  : "",
-		from  : "",
-		cc  : "",
-		bcc  : "",
-		subject  : "",
-		body  : "",
-		receivedDate  : "",
-		html  : true,
-		attachment:[ { contentType  : "", fileName  : "" , file: { path  : "", name  : ""},charset  : "",saved: false }]
+export const mailMessageSendRequest: MailMessageSendRequest = {
+	messageNumber  : "",
+	to  : "",
+	from  : "",
+	cc  : "",
+	bcc  : "",
+	subject  : "",
+	body  : "",
+	receivedDate  : "",
+	html  : true,
+	attachment:[ { contentType  : "", fileName  : "" , file: { path  : "", name  : ""},charset  : "",saved: false }]
 };
 
 export interface MailMessageModel {

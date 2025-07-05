@@ -41,8 +41,11 @@ export class HttpErrorHandler {
       // TODO: better job of transforming error for user consumption
       this.messageService.add(`${serviceName}: ${operation} failed: ${message}`);
 
-       //this.router.navigate(['', { }]);
-       this.router.navigate(['']);
+      if (error.status === 401 || error.status === 403) {
+        // Only redirect to login on auth errors
+        this.router.navigate(['']);
+      }
+      // Otherwise, just show the error and stay on the page
       // Let the app keep running by returning a safe result.
       return of( result );
     };

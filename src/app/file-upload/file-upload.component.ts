@@ -25,7 +25,7 @@ export class FileUploadComponent {
 	
 	@Input()
     requiredFileType!:string;
-    @Output() uploadedFileEvent = new EventEmitter<string>();
+    @Output() uploadedFileEvent = new EventEmitter<{fileName: string, contentType: string, size: number}>();
     
     fileName = '';
     uploadProgress:number = 0;
@@ -38,9 +38,7 @@ export class FileUploadComponent {
     
     
   onFileSelected(event:any) {
-
     const file:File = event.target.files[0];
-
     if (file) {
       this.fileName = file.name;
       const formData = new FormData();
@@ -55,14 +53,17 @@ export class FileUploadComponent {
       .pipe(
           finalize(() => this.reset()),
           catchError(this.handleError<any>('upload'))
-          
       );
     
       this.uploadSub = upload$.subscribe(event => {
         if (event.type == HttpEventType.UploadProgress) {
             const total = event.total;
             this.uploadProgress = Math.round(100 * (event.loaded / total!));
-            this.uploadedFileEvent.emit(file.name);
+            this.uploadedFileEvent.emit({
+              fileName: file.name,
+              contentType: file.type || 'application/octet-stream',
+              size: file.size
+            });
         }
       })
     }

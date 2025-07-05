@@ -40,7 +40,7 @@ ion-card-content, ion-card-header {
 }
 
 .login-card ion-card-title {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 500;
   margin-bottom: 0.5rem;
   text-align: center;
@@ -89,21 +89,25 @@ ion-toolbar {
 }
 
 ion-title {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   text-align: center;
   color: var(--ion-text-color);
   font-weight: 500;
-  letter-spacing: 0.00em;
+  letter-spacing: 0em;
 }
 
-ion-card-subtitle {
-  font-size: 1.05rem;
+.login-card ion-card-subtitle {
+  font-size: 1.0rem;
   font-weight: 400;
   color: var(--ion-text-color);
   text-wrap: wrap;
   letter-spacing: 0.02em;
   text-transform: none !important;
   padding: 0 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .login-card form {
@@ -202,6 +206,24 @@ ion-item ion-label {
 
 ion-item ion-input input {
   padding-left: 8px !important;
+}
+
+/* Remember me checkbox styling */
+ion-item ion-checkbox {
+  --size: 20px;
+  --checkbox-background-checked: #007bff;
+  --border-color-checked: #007bff;
+}
+
+ion-item ion-checkbox::part(container) {
+  border-radius: 4px;
+}
+
+/* Remember me label styling */
+ion-item ion-label {
+  font-size: 1rem;
+  color: var(--ion-text-color);
+  margin-left: 8px;
 }
 
 

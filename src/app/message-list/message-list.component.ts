@@ -22,7 +22,7 @@ import {Router} from '@angular/router';
 import { CommonModule } from '@angular/common';  
 import { DialogMoveMessagesComponent } from '../dialog-move-messages/dialog-move-messages.component';
 import { UtilsApiService } from '../utilsService/utils-api.service';
-import { IonicModule, IonInfiniteScroll, IonItemSliding } from '@ionic/angular';
+import { IonicModule, IonInfiniteScroll, IonItemSliding, ToastController } from '@ionic/angular';
 
 export interface PeriodicElement {
   name: string;
@@ -45,6 +45,7 @@ export class MessageListComponent implements AfterViewInit   {
   @Output() selectionChange = new EventEmitter<{isActive: boolean, count: number}>();
   @Output() activeMessageSubject = new EventEmitter<string | null>();
   @Output() composeModeChange = new EventEmitter<boolean>();
+  @Output() exitComposeMode = new EventEmitter<void>();
   selectionMode = false;
   selectedMessages = new Set<number>();
 	
@@ -55,11 +56,12 @@ export class MessageListComponent implements AfterViewInit   {
   tabInex:number = 0 ;
 
   	
-   constructor(private route: ActivatedRoute , private messageListApiService: MessageListApiService , private  utilsApiService: UtilsApiService , private router: Router){
-   }
-   
-  
- 
+   constructor(
+    private route: ActivatedRoute, 
+    private messageListApiService: MessageListApiService, 
+    private  utilsApiService: UtilsApiService, 
+    private router: Router,
+    private toastController: ToastController){}
 
   @ViewChild(IonInfiniteScroll) infiniteScroll!: IonInfiniteScroll;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
@@ -76,6 +78,7 @@ export class MessageListComponent implements AfterViewInit   {
   pageSize = 20;
   pageIndex = 0;
   pageSizeOptions = [20, 40, 60];
+  userName: string = '';
   
   // Avatar color palette
   private readonly AVATAR_COLORS: string[] = [
@@ -93,101 +96,76 @@ export class MessageListComponent implements AfterViewInit   {
     }
     return Math.abs(hash) % max;
   }
-
+  // This is for mobile view
   // Public method to get avatar color for an email
   public getAvatarColor(email: string): string {
     const index = this.hashStringToNumber(email, this.AVATAR_COLORS.length);
     return this.AVATAR_COLORS[index];
   }
-  
-  ngAfterViewInit(): void {
-    
-     let folder = this.route.snapshot.queryParamMap.get('folder');
-     if(folder === '' || folder == null ) folder = 'Inbox' ;
-     this.currentFolder = folder as string ;
-    //  console.log('🔍 MessageList - Initial folder from route:', folder);
-    //  console.log('🔍 MessageList - Current folder set to:', this.currentFolder);
-     this.dataSource.data = [] ;
-     this.pageIndex = 0; // Reset page index for initial load
-     this.messageListApiService.setSortOrder('1').subscribe(() => {
-       this.utilsApiService.getMessageCount(folder).subscribe(response => {
-         this.length = Number(response);
-        //  console.log('🔍 MessageList - Message count for folder:', folder, 'is:', this.length);
-         let startMsgNumber = (this.pageIndex * this.pageSize) + 1 ; 
-         let lastMsgNumber = (this.pageIndex * this.pageSize)  + this.pageSize  ;
-         if ( lastMsgNumber > this.length ) lastMsgNumber = this.length ;
-        //  console.log('🔍 MessageList - Fetching messages from', startMsgNumber, 'to', lastMsgNumber, 'for folder:', folder);
-         this.messageListApiService.listMessages(
-           {
-             startMsgNumber:startMsgNumber , 
-             lastMsgNumber:lastMsgNumber ,
-             folder:""+folder
-           }
-         ).subscribe(messageListResponse => {
-          //  console.log('🔍 MessageList - Received', messageListResponse.messageList.length, 'messages for folder:', folder);
-           for (let i = 0; i < messageListResponse.messageList.length; i++) {
-            //  console.log('🔍 MessageList - Message', i+1, ':', {
-            //    id: messageListResponse.messageList[i].messageNumber,
-            //    from: messageListResponse.messageList[i].from,
-            //    subject: messageListResponse.messageList[i].subject,
-            //    folder: folder
-            //  });
-             this.dataSource.data.push({
-               id:  Number(messageListResponse.messageList[i].messageNumber),
-               from: messageListResponse.messageList[i].from,
-               name:  messageListResponse.messageList[i].subject,
-               receivedDate:  messageListResponse.messageList[i].receivedDate,
-               attachment:  messageListResponse.messageList[i].attachment != null && messageListResponse.messageList[i].attachment.length > 0  ,
-               size:  messageListResponse.messageList[i].size,
-               status:messageListResponse.messageList[i].status,
-               priority:'nornal'
-             })
-           }
-           
-           this.dataSource.sort = this.sort;
-           this.dataSource.paginator = this.paginator;
-           this.table.dataSource = this.dataSource;
-         })
-       })
-     })
+
+  // This is for mobile view
+  // Public method to get the appropriate field for avatar display based on folder
+  public getAvatarField(message: MessageListItem): string {
+    if (this.currentFolder && this.currentFolder.toUpperCase() === 'INBOX') {
+      return message.from || 'Unknown';
+    } else {
+      return message.to || 'Unknown';
+    }
+  }
+
+  // This is for mobile view
+  // Public method to get the first letter for avatar display based on folder
+  public getAvatarLetter(message: MessageListItem): string {
+    const field = this.getAvatarField(message);
+    return field.charAt(0) ? field.charAt(0).toUpperCase() : 'I';
   }
   
+  ngAfterViewInit(): void {
+    // Remove any message loading logic here to prevent duplicate loads
+  }
+  // This is for desktop view
   handlePageEvent(event: PageEvent) {
     this.length = event.length;
     this.pageSize = event.pageSize;
     this.pageIndex = event.pageIndex;
     
-		 let startMsgNumber = (this.pageIndex * this.pageSize) + 1 ; 
-		 let lastMsgNumber = (this.pageIndex * this.pageSize)  + this.pageSize  ;
-		 if ( lastMsgNumber > this.length ) lastMsgNumber = this.length ;
-		 this.messageListApiService.listMessages(
-			{
-				startMsgNumber:startMsgNumber , 
-				lastMsgNumber:lastMsgNumber ,
-				folder:this.currentFolder
-			}
-			).subscribe(messageListResponse => {
-				this.dataSource.data = [] ;	
-				for (let i = 0; i < messageListResponse.messageList.length; i++) {
-					  // console.log(messageListResponse.messageList[i]);
-					  this.dataSource.data.push({
-					      id:  Number(messageListResponse.messageList[i].messageNumber),
-					      from: messageListResponse.messageList[i].from,
-					      name:  messageListResponse.messageList[i].subject,
-					      receivedDate:  messageListResponse.messageList[i].receivedDate,
-					      attachment:  messageListResponse.messageList[i].attachment != null && messageListResponse.messageList[i].attachment.length > 0  ,
-					      size:  messageListResponse.messageList[i].size,
-					      status:messageListResponse.messageList[i].status,
-					      priority:'nornal'
-					    })
-					}
-					 this.dataSource.sort = this.sort;
-					 this.dataSource.paginator = this.paginator;
-					 this.table.dataSource = this.dataSource;
-		      })
-      
+    let startMsgNumber = (this.pageIndex * this.pageSize) + 1 ; 
+    let lastMsgNumber = (this.pageIndex * this.pageSize)  + this.pageSize  ;
+    if ( lastMsgNumber > this.length ) lastMsgNumber = this.length ;
+    this.messageListApiService.listMessages(
+    {
+      startMsgNumber:startMsgNumber , 
+      lastMsgNumber:lastMsgNumber ,
+      folder:this.currentFolder
+    }).subscribe(messageListResponse => {
+      this.dataSource.data = [] ;
+      if (messageListResponse && Array.isArray(messageListResponse.messageList)) {
+        for (let i = 0; i < messageListResponse.messageList.length; i++) 
+          {
+            // console.log(messageListResponse.messageList[i]);
+            this.dataSource.data.push({
+                id:  Number(messageListResponse.messageList[i].messageNumber),
+                from: messageListResponse.messageList[i].from,
+                to:messageListResponse.messageList[i].to,
+                name:  messageListResponse.messageList[i].subject,
+                receivedDate:  messageListResponse.messageList[i].receivedDate,
+                attachment:  messageListResponse.messageList[i].attachment != null && messageListResponse.messageList[i].attachment.length > 0  ,
+                size:  messageListResponse.messageList[i].size,
+                status:messageListResponse.messageList[i].status,
+                starred: false // default to not starred
+              })
+          }
+
+          this.dataSource.sort = this.sort;
+          this.dataSource.paginator = this.paginator;
+          this.table.dataSource = this.dataSource;
+        } else {
+          this.dataSource.data = [];
+          this.showErrorToast('Failed to load messages. Please try again later.');
+        }
+      })
   }
-  
+  // This is for desktop view
   /** Whether the number of selected elements matches the total number of rows. */
   isAllSelected() {
     const numSelected = this.selection.selected.length;
@@ -195,16 +173,17 @@ export class MessageListComponent implements AfterViewInit   {
     return numSelected === numRows;
   }
 
+  // This is for desktop view
   /** Selects all rows if they are not all selected; otherwise clear selection. */
   toggleAllRows() {
     if (this.isAllSelected()) {
       this.selection.clear();
       return;
     }
-
    //this.selection.select(...this.dataSource.data); //?
   }
 
+  // This is for desktop view
   /** The label for the checkbox on the passed row */
   checkboxLabel(row?: PeriodicElement): string {
     if (!row) {
@@ -222,13 +201,13 @@ export class MessageListComponent implements AfterViewInit   {
     }
   }*/
 
- addNewTab(tabName: string ) {
+  addNewTab(tabName: string ) {
 	this.currentMsgId = 0 ; 
-    this.tabs.push(tabName);
-    const newIndex = this.tabs.length - 1;
-    this.selected.setValue(newIndex);
-    this.currentMsgId = 0 ;
-    this.onTabChange(newIndex); // Manually trigger event for header update
+  this.tabs.push(tabName);
+  const newIndex = this.tabs.length - 1;
+  this.selected.setValue(newIndex);
+  // this.currentMsgId = 0 ;
+  this.onTabChange(newIndex); // Manually trigger event for header update
   }
 
   addTab(currentMsgId: number, tabName: string) {
@@ -268,6 +247,7 @@ export class MessageListComponent implements AfterViewInit   {
     this.addTab(row.id, row.name);
   }
 
+  // This is for mobile view
   onArchive(message: MessageListItem, slidingItem: IonItemSliding) {
     const moveRequest: MoveMessageRequest = {
       name: this.currentFolder,
@@ -284,6 +264,7 @@ export class MessageListComponent implements AfterViewInit   {
     slidingItem.close();
   }
 
+  // This is for mobile view
   onDelete(message: MessageListItem, slidingItem: IonItemSliding) {
     const deleteRequest: DeleteMessageRequest = {
       folder: this.currentFolder,
@@ -307,6 +288,23 @@ export class MessageListComponent implements AfterViewInit   {
       return;
     }
 
+    switch(this.currentFolder) {
+      case "SENT":
+        this.currentFolder = "Sent";
+        break;
+      case "DRAFT":
+        this.currentFolder = "Draft";
+        break;
+      case "ARCHIVE":
+        this.currentFolder = "Archive";
+        break;
+      case "OUTBOX":
+        this.currentFolder = "Outbox";
+        break;
+      case "SPAM":
+        this.currentFolder = "Spam";
+        break;
+    }
     this.pageIndex++;
     let startMsgNumber = (this.pageIndex * this.pageSize) + 1 ; 
 		let lastMsgNumber = (this.pageIndex * this.pageSize)  + this.pageSize  ;
@@ -320,39 +318,48 @@ export class MessageListComponent implements AfterViewInit   {
           folder:this.currentFolder
         }
       ).subscribe(messageListResponse => {
-        for (let i = 0; i < messageListResponse.messageList.length; i++) {
-          this.dataSource.data.push({
-            id:  Number(messageListResponse.messageList[i].messageNumber),
-            from: messageListResponse.messageList[i].from,
-            name:  messageListResponse.messageList[i].subject,
-            receivedDate:  messageListResponse.messageList[i].receivedDate,
-            attachment:  messageListResponse.messageList[i].attachment != null && messageListResponse.messageList[i].attachment.length > 0  ,
-            size:  messageListResponse.messageList[i].size,
-            status:messageListResponse.messageList[i].status,
-            priority:'nornal'
-          })
-        }
-        // Important: We need to create a new array reference for change detection to work
-        this.dataSource.data = [...this.dataSource.data];
-        ev.target.complete();
-        // Disable the infinite scroll if we've loaded all the messages
-        if (this.dataSource.data.length >= this.length) {
-          ev.target.disabled = true;
+        if (messageListResponse && Array.isArray(messageListResponse.messageList)) {
+          for (let i = 0; i < messageListResponse.messageList.length; i++) {
+            this.dataSource.data.push({
+              id:  Number(messageListResponse.messageList[i].messageNumber),
+              from: messageListResponse.messageList[i].from,
+              to:messageListResponse.messageList[i].to,
+              name:  messageListResponse.messageList[i].subject,
+              receivedDate:  messageListResponse.messageList[i].receivedDate,
+              attachment:  messageListResponse.messageList[i].attachment != null && messageListResponse.messageList[i].attachment.length > 0  ,
+              size:  messageListResponse.messageList[i].size,
+              status:messageListResponse.messageList[i].status,
+              starred: false // default to not starred
+            })
+          }
+          // Important: We need to create a new array reference for change detection to work
+          this.dataSource.data = [...this.dataSource.data];
+          ev.target.complete();
+          // Disable the infinite scroll if we've loaded all the messages
+          if (this.dataSource.data.length >= this.length) {
+            ev.target.disabled = true;
+          }
+        } else {
+          this.dataSource.data = [];
+          this.showErrorToast('Failed to load messages. Please try again later.');
         }
       })
     });
   }
 
+  // This is for mobile view
   isSelected(message: MessageListItem): boolean {
     return this.selectedMessages.has(message.id);
   }
 
   private clickTimeout: any;
-
+// This is for mobile view
   onItemClick(message: MessageListItem): void {
     if (this.selectionMode) {
       this.toggleSelection(message);
-    } else {
+    } 
+    else 
+    {
       // Debounce to prevent rapid double clicks
       if (this.clickTimeout) {
         clearTimeout(this.clickTimeout);
@@ -364,6 +371,7 @@ export class MessageListComponent implements AfterViewInit   {
     }
   }
 
+  // This is for mobile view
   onLongPress(message: MessageListItem): void {
     this.selectionMode = true;
     this.toggleSelection(message);
@@ -443,15 +451,42 @@ export class MessageListComponent implements AfterViewInit   {
     });
   }
 
+  // This is for mobile view
   isMessageOpen(): boolean {
     return this.selected.value !== null && this.selected.value > 0;
   }
-
+  
+  private resetInfiniteScroll(): void {
+    if (this.infiniteScroll) {
+      this.infiniteScroll.disabled = false;
+    }
+  }
+// For mobile view
   refreshMessages(event: any) {
     let folder = this.currentFolder || 'Inbox';
+    switch(folder) {
+      case "SENT":
+        folder = "Sent";
+        break;
+      case "ARCHIVE":
+        folder = "Archive";
+        break;
+      case "DRAFT":
+        folder = "Draft";
+        break;
+      case "OUTBOX":
+        folder = "Outbox";
+        break;
+      case "SPAM":
+        folder = "Spam";
+        break;
+    }
+    
     // console.log('🔍 MessageList - Refreshing messages for folder:', folder);
     this.pageIndex = 0;
     this.dataSource.data = [];
+    // Reset infinite scroll state
+    this.resetInfiniteScroll();
     this.messageListApiService.setSortOrder('1').subscribe(() => {
       this.utilsApiService.getMessageCount(folder).subscribe(response => {
         this.length = Number(response);
@@ -464,28 +499,38 @@ export class MessageListComponent implements AfterViewInit   {
           lastMsgNumber: lastMsgNumber,
           folder: '' + folder
         }).subscribe(messageListResponse => {
-          // console.log('🔍 MessageList - Refresh: Received', messageListResponse.messageList.length, 'messages for folder:', folder);
-          this.dataSource.data = messageListResponse.messageList.map(msg => ({
-            id: Number(msg.messageNumber),
-            from: msg.from,
-            name: msg.subject,
-            receivedDate: msg.receivedDate,
-            attachment: msg.attachment != null && msg.attachment.length > 0,
-            size: msg.size,
-            status: msg.status,
-            priority: 'nornal'
-          }));
+          // console.log('🔍 MessageList - Refresh: Received', messageListResponse.messageList, 'messages for folder:', folder);
+          if (messageListResponse && Array.isArray(messageListResponse.messageList)) {
+            this.dataSource.data = messageListResponse.messageList.map(msg => ({
+              id: Number(msg.messageNumber),
+              from: msg.from,
+              to: msg.to,
+              name: msg.subject,
+              receivedDate: msg.receivedDate,
+              attachment: msg.attachment != null && msg.attachment.length > 0,
+              size: msg.size,
+              status: msg.status,
+              starred: false // default to not starred
+            }));
+          } else {
+            this.dataSource.data = [];
+            this.showErrorToast('Failed to load messages. Please try again later.');
+          }
           event.target.complete();
           if (this.infiniteScroll) {
             this.infiniteScroll.disabled = false;
           }
         }, () => {
+          this.dataSource.data = [];
+          this.showErrorToast('A server error occurred. Please try again later.');
           event.target.complete();
           if (this.infiniteScroll) {
             this.infiniteScroll.disabled = false;
           }
         });
       }, () => {
+        this.dataSource.data = [];
+        this.showErrorToast('A server error occurred. Please try again later.');
         event.target.complete();
         if (this.infiniteScroll) {
           this.infiniteScroll.disabled = false;
@@ -498,8 +543,27 @@ export class MessageListComponent implements AfterViewInit   {
   public refreshMessagesAfterSend() {
     // console.log('🔍 MessageList - Refreshing messages after send for folder:', this.currentFolder);
     let folder = this.currentFolder || 'Inbox';
+    switch(folder) {
+      case "SENT":
+        folder = "Sent";
+        break;
+      case "DRAFT":
+        folder = "Draft";
+        break;
+      case "ARCHIVE":
+        folder = "Archive";
+        break;
+      case "OUTBOX":
+        folder = "Outbox";
+        break;
+      case "SPAM":
+        folder = "Spam";
+        break;
+    }
     this.pageIndex = 0;
     this.dataSource.data = [];
+    // Reset infinite scroll state
+    this.resetInfiniteScroll();
     this.messageListApiService.setSortOrder('1').subscribe(() => {
       this.utilsApiService.getMessageCount(folder).subscribe(response => {
         this.length = Number(response);
@@ -512,20 +576,27 @@ export class MessageListComponent implements AfterViewInit   {
           lastMsgNumber: lastMsgNumber,
           folder: '' + folder
         }).subscribe(messageListResponse => {
+          // console.log('🔍 MessageList - After send: Received', messageListResponse.messageList, 'messages for folder:', folder);
           // console.log('🔍 MessageList - After send: Received', messageListResponse.messageList.length, 'messages for folder:', folder);
-          this.dataSource.data = messageListResponse.messageList.map(msg => ({
-            id: Number(msg.messageNumber),
-            from: msg.from,
-            name: msg.subject,
-            receivedDate: msg.receivedDate,
-            attachment: msg.attachment != null && msg.attachment.length > 0,
-            size: msg.size,
-            status: msg.status,
-            priority: 'nornal'
-          }));
-          // Re-enable infinite scroll
-          if (this.infiniteScroll) {
-            this.infiniteScroll.disabled = false;
+          if (messageListResponse && Array.isArray(messageListResponse.messageList)) {
+            this.dataSource.data = messageListResponse.messageList.map(msg => ({
+              id: Number(msg.messageNumber),
+              from: msg.from,
+              to: msg.to,
+              name: msg.subject,
+              receivedDate: msg.receivedDate,
+              attachment: msg.attachment != null && msg.attachment.length > 0,
+              size: msg.size,
+              status: msg.status,
+              starred: false // default to not starred
+            }));
+            // Re-enable infinite scroll
+            if (this.infiniteScroll) {
+              this.infiniteScroll.disabled = false;
+            }
+          } else {
+            this.dataSource.data = [];
+            this.showErrorToast('Failed to load messages. Please try again later.');
           }
         });
       });
@@ -535,19 +606,51 @@ export class MessageListComponent implements AfterViewInit   {
   ngOnInit(): void {
     // Subscribe to route parameter changes to detect folder changes
     this.route.queryParamMap.subscribe(params => {
-      const folder = params.get('folder');
-      // console.log('🔍 MessageList - Route parameter changed. New folder:', folder);
-      if (folder && folder !== this.currentFolder) {
-        // console.log('🔍 MessageList - Folder changed from', this.currentFolder, 'to', folder);
-        this.currentFolder = folder;
-        // Refresh messages for the new folder
-        this.refreshMessagesAfterSend();
+      let folder = params.get('folder');
+      // Ensure folder is set to 'INBOX' on first load if not specified
+      if (!folder || folder.trim() === '') {
+        folder = 'INBOX';
       }
+      this.currentFolder = folder;
+      // Reset infinite scroll state when folder changes
+      this.resetInfiniteScroll();
+      // Refresh messages for the new folder
+      this.refreshMessagesAfterSend();
     });
   }
 
   public resetCurrentMessage() {
     this.currentMsgId = 0;
+  }
+
+  public onNavigateToSent(): void {
+    this.router.navigate(['/app'], { queryParams: { folder: 'SENT' } });
+    this.selected.setValue(0);
+    this.currentMsgId = 0;
+    this.closeCurrentMessage();
+    this.selectionMode = false;
+    this.exitComposeMode.emit(); 
+    this.activeMessageSubject.emit(null);
+    this.composeModeChange.emit(false);
+  }
+
+  private async showErrorToast(message: string) {
+    const toast = await this.toastController.create({
+      message,
+      duration: 3000,
+      color: 'danger',
+      position: 'bottom'
+    });
+    await toast.present();
+  }
+
+  public isMobileView(): boolean {
+    return window.innerWidth <= 768;
+  }
+
+  // Toggle the starred state for a message
+  public toggleStar(message: MessageListItem): void {
+    message.starred = !message.starred;
   }
 }
 

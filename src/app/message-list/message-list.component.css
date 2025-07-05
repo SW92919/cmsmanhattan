@@ -152,29 +152,36 @@ table {
     -ms-user-select: none;
     user-select: none;
 }
-
+.message-item-label {
+  margin-top: 4px;
+  margin-bottom: 8px;
+  position: relative;
+}
 .message-item h2 {
-    font-size: 1.3rem; /* */
+    font-size: 1.1rem; /* */
     font-weight: normal;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     color: var(--text-color);
+    margin-bottom: 0px;
+    width: 92%;
 }
 
 .message-item p {
-    font-size: 1.1em; 
+    font-size: 1.05rem; 
     color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    width: 92%;
 }
 
 .message-item .date {
-
     margin-top: 4px; /* Added for spacing */
-    font-size: 1.05rem;
+    font-size: 1.0rem;
     color: var(--text-secondary);
+    width: 92%;
 }
 
 /* Make unread messages bold */
@@ -220,15 +227,15 @@ ion-fab-button {
 
 /* Simple avatar styling */
 .avatar-circle {
-    width: 45px;
-    height: 45px;
+    width: 2.5rem;
+    height: 2.5rem;
     border-radius: 50%;
     background-color: #3880ff; /* Ionic primary color */
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: 400;
 }
 
@@ -296,10 +303,41 @@ ngx-editor, .ngx-editor, .ProseMirror, .mat-input-element, textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.3em;
+  font-size: 1.5rem;
 }
 ion-item {
   --border-width: 0 0 1px 0;
   --border-style: solid;
   --border-color: var(--divider-color, #e0e0e0);
+  padding:0
+}
+
+.message-view {
+  margin-top: 0px;
+  font-size: 1.05rem;
+}
+.message-item{
+  position: relative;
+  padding: 0 !important;
+}
+.message-item .star-icon {
+  display: inline-block;
+  margin: 8px; 
+  font-size: 1.2rem; 
+  color: var(--icon-star-color) !important;
+  cursor: pointer;
+  position: absolute;
+  right: 0.25rem;
+  bottom: 0.3rem;
+}
+
+.attachment-icon {
+  display: inline-block;
+  /* margin: 8px; */
+  font-size: 1.6rem;
+  color: var(--icon-text-color) !important;
+  cursor: pointer;
+  position: absolute;
+  right: -0.5rem;
+  bottom: 2.8rem;
 }

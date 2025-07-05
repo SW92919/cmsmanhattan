@@ -8,6 +8,16 @@ const config: CapacitorConfig = {
     allowNavigation: ['*'],
     hostname: 'cmsmanhattan.com',
     androidScheme: 'http'
+  },
+  plugins: {
+    Filesystem: {
+      enabled: true,
+      path: 'downloadedFiles',
+      android: {
+        requestPermission: 'android.permission.READ_EXTERNAL_STORAGE',
+        requestPermissionRationale: 'This app needs access to your storage to download files.'
+      }
+    }
   }
 };
 

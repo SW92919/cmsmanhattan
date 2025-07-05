@@ -74,6 +74,7 @@ export class LayoutComponent implements OnInit {
       );
       // Subscribe to active message subject changes
       this.messageListComponent.activeMessageSubject.subscribe(subject => {
+        // console.log('🔍 Layout - onActivate - Active message subject:', subject);
         this.currentMessageSubject = subject;
       });
       // Subscribe to compose mode changes
@@ -141,8 +142,15 @@ export class LayoutComponent implements OnInit {
 
 
   deleteCurrentMessage() {
-    // TODO: Implement delete logic for the current message
-    // console.log('Delete current message');
+    if (this.messageListComponent) {
+      const messageId = this.messageListComponent.currentMsgId;
+      if (messageId) {
+        this.messageListComponent.selectedMessages.clear();
+        this.messageListComponent.selectedMessages.add(messageId);
+        this.messageListComponent.deleteSelectedMessages();
+        this.closeMessageView(); // Return to the list view after deletion
+      }
+    }
   }
 
   saveMessage() {

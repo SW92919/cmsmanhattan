@@ -35,9 +35,19 @@
               <ion-icon [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
             </ion-button>
           </ion-item>
+          
+          <ion-item lines="none" style="--padding-start: 0; --inner-padding-end: 0;">
+            <ion-checkbox 
+              formControlName="rememberMe" 
+              slot="start"
+              style="margin-right: 8px;">
+            </ion-checkbox>
+            <ion-label style="font-size: 1rem; color: var(--ion-text-color);">Remember me</ion-label>
+          </ion-item>
           <div class="login-actions">
             <ion-button expand="block" type="submit" color="primary">Login</ion-button>
-            <ion-button expand="block" fill="outline" color="primary" href="http://www.cmsmanhattan.com/Authorization.jsp?Login=">Registration</ion-button>
+            <!-- href="http://www.cmsmanhattan.com/Authorization.jsp?Login=" -->
+            <ion-button expand="block" fill="outline" color="primary" >Registration</ion-button>
           </div>
           <div class="login-message" *ngIf="message">{{ message }}</div>
         </form>
@@ -47,7 +57,7 @@
   <div class="login-footer">
     <p>Copyright: Copyright (c) 2002-2025</p>
     <p>
-      <a href="http://www.cmsmanhattan.com" target="_blank">CENTER BUSINESS SOLUTIONS INC</a> -
+      <!-- <a href="http://www.cmsmanhattan.com" target="_blank">CENTER BUSINESS SOLUTIONS INC</a> - -->
       <span class="support-email">support&#64;cmsmanhattan.com</span>
     </p>
   </div>

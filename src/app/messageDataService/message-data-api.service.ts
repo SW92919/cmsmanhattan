@@ -12,89 +12,89 @@ import { environment } from '../../environments/environment';
 })
 export class MessageDataApiService {
 
-  baseUrl:string = environment.apiUrl;
-  replyMessageUrl =  this.baseUrl + 'getReplyMessage';
-  messageUrl =  this.baseUrl + 'getMessage';
+  baseUrl: string = environment.apiUrl;
+  replyMessageUrl = this.baseUrl + 'getReplyMessage';
+  messageUrl = this.baseUrl + 'getMessage';
   forwardMessageUrl = this.baseUrl + 'getForwardMessage';
   attachmentUrl = this.baseUrl + 'attachment';
   //heroesUrl = 'http://localhost:8096/api/salesman_chat';  // URL to web api
   private handleError!: HandleError;
 
- constructor(
+  constructor(
     private http: HttpClient,
-    private loginApiService: LoginApiService ,
+    private loginApiService: LoginApiService,
     httpErrorHandler: HttpErrorHandler) {
     this.handleError = httpErrorHandler.createHandleError('MessageDataApiService');
   }
-  
 
-  
-   getReplyMessage(messageContentRequest: MessageContentRequest): Observable<MessageContentResponse> {
+
+
+  getReplyMessage(messageContentRequest: MessageContentRequest): Observable<MessageContentResponse> {
     const httpOptions = {
-	  headers: new HttpHeaders({
-		'userName': this.loginApiService.getUserName(),
-	    'Content-Type':  'application/json',
-	    'jwtKey': this.loginApiService.getJwtKey()
-	  })
-	};
+      headers: new HttpHeaders({
+        'userName': this.loginApiService.getUserName(),
+        'Content-Type': 'application/json',
+        'jwtKey': this.loginApiService.getJwtKey()
+      })
+    };
 
     return this.http.post<MessageContentResponse>(this.replyMessageUrl, messageContentRequest, httpOptions)
       .pipe(
-		  //tap(_ => this.log(`updated hero `)),
-       	  catchError(this.handleError<any>('getReplyMessage'))
+        //tap(_ => this.log(`updated hero `)),
+        catchError(this.handleError<any>('getReplyMessage'))
       );
   }
-  
+
   getMessage(messageContentRequest: MessageContentRequest): Observable<MessageContentResponse> {
     const httpOptions = {
-	  headers: new HttpHeaders({
-		'userName': this.loginApiService.getUserName(),
-	    'Content-Type':  'application/json',
-	     'jwtKey': this.loginApiService.getJwtKey()
-	  })
-	};
+      headers: new HttpHeaders({
+        'userName': this.loginApiService.getUserName(),
+        'Content-Type': 'application/json',
+        'jwtKey': this.loginApiService.getJwtKey()
+      })
+    };
 
     return this.http.post<MessageContentResponse>(this.messageUrl, messageContentRequest, httpOptions)
       .pipe(
-		  //tap(_ => this.log(`updated hero `)),
-       	  catchError(this.handleError<any>('getMessage'))
+        //tap(_ => this.log(`updated hero `)),
+        catchError(this.handleError<any>('getMessage'))
       );
   }
-  
+
   getForwardMessage(forwardMessageContentRequest: ForwardMessageContentRequest): Observable<MessageContentResponse> {
     const httpOptions = {
-	  headers: new HttpHeaders({
-		'userName': this.loginApiService.getUserName(),
-	    'Content-Type':  'application/json',
-	     'jwtKey': this.loginApiService.getJwtKey()
-	  })
-	};
+      headers: new HttpHeaders({
+        'userName': this.loginApiService.getUserName(),
+        'Content-Type': 'application/json',
+        'jwtKey': this.loginApiService.getJwtKey()
+      })
+    };
 
     return this.http.post<MessageContentResponse>(this.forwardMessageUrl, forwardMessageContentRequest, httpOptions)
       .pipe(
-		  //tap(_ => this.log(`updated hero `)),
-       	  catchError(this.handleError<any>('getForwardMessage'))
+        //tap(_ => this.log(`updated hero `)),
+        catchError(this.handleError<any>('getForwardMessage'))
       );
   }
-  
-  attachment(folder:string , messageNumber:number  , filename:string   ,  userName:string  ): Observable<StreamingResponseBody> {
+
+  attachment(folder: string, messageNumber: number, filename: string, userName: string): Observable<Blob> {
     const httpOptions = {
-	  headers: new HttpHeaders({
-	    'Content-Type':  'application/json',
-	    'jwtKey': this.loginApiService.getJwtKey()
-	  }),
-	   params: new HttpParams()
-	   .append('folder', folder)
-	   .append('messageNumber', messageNumber)
-	   .append('filename', filename)
-	   .append('userName', userName)
-	};
-    
-    return this.http.get<StreamingResponseBody>(this.attachmentUrl,httpOptions)
+      headers: new HttpHeaders({
+        'Content-Type': 'application/json',
+        'jwtKey': this.loginApiService.getJwtKey()
+      }),
+      params: new HttpParams()
+        .append('folder', folder)
+        .append('messageNumber', messageNumber)
+        .append('filename', filename)
+        .append('userName', userName),
+      responseType: 'blob' as 'json'  // This is the key fix
+    };
+
+    return this.http.get<Blob>(this.attachmentUrl, httpOptions)
       .pipe(
-		  //tap(_ => this.log(`updated hero `)),
-       	  catchError(this.handleError<any>('attachment'))
+        catchError(this.handleError<any>('attachment'))
       );
   }
-  
+
 }

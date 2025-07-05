@@ -39,138 +39,132 @@ export class SendApiService {
   
 
   
-  sendMail(mailMessageSendRequest: MailMessageSendRequest): Observable<string> {
-	 const httpOptions = {
-	  headers: new HttpHeaders({
+	sendMail(mailMessageSendRequest: MailMessageSendRequest): Observable<string> {
+		const httpOptions = {
+		headers: new HttpHeaders({
 		'userName': this.loginApiService.getUserName(),
-	    'jwtKey': this.loginApiService.getJwtKey()
-	  })
-	};      
-    
-    return this.http.post<string>(this.sendMailUrl, mailMessageSendRequest, httpOptions)
-      .pipe(
-		  //tap(_ => this.log(`updated hero `)),
-       	  catchError(this.handleError<any>('sendMail'))
-      );
-  }
-  
-  
-  setTo (to : string): Observable<string> {
-	 const httpOptions = {
-	  headers: new HttpHeaders({
+		'jwtKey': this.loginApiService.getJwtKey()
+		})
+		};      
+		
+		return this.http.post<string>(this.sendMailUrl, mailMessageSendRequest, httpOptions)
+		.pipe(
+			//tap(_ => this.log(`updated hero `)),
+			catchError(this.handleError<any>('sendMail'))
+		);
+	}
+
+	setTo (to : string): Observable<string> {
+		const httpOptions = {
+		headers: new HttpHeaders({
 		'userName': this.loginApiService.getUserName(),
-	    'jwtKey': this.loginApiService.getJwtKey()
-	  }),
-	   params: new HttpParams()
-	   .append('to', to)
+		'jwtKey': this.loginApiService.getJwtKey()
+		}),
+		params: new HttpParams()
+		.append('to', to)
 	};  
-	  
-    return this.http.post<string>(this.setToUrl, "" , httpOptions)
-      .pipe(
-		  //tap(_ => this.log(`updated hero `)),
-       	  catchError(this.handleError<any>('setTo'))
-      );
-  }
-  
-  
-  setSubject (subject : string): Observable<string> {
-	 const httpOptions = {
-	  headers: new HttpHeaders({
+		
+	return this.http.post<string>(this.setToUrl, "" , httpOptions)
+		.pipe(
+			//tap(_ => this.log(`updated hero `)),
+			catchError(this.handleError<any>('setTo'))
+		);
+	}
+
+	setSubject (subject : string): Observable<string> {
+		const httpOptions = {
+			headers: new HttpHeaders({
+			'userName': this.loginApiService.getUserName(),
+			'jwtKey': this.loginApiService.getJwtKey()
+			}),
+			params: new HttpParams()
+			.append('subject', subject)
+		};
+		return this.http.post<string>(this.setSubjectUrl, "" , httpOptions)
+		.pipe(
+			//tap(_ => this.log(`updated hero `)),
+			catchError(this.handleError<any>('setSubject'))
+		);
+	}
+
+	setRichText(richText : string): Observable<string> {
+		const httpOptions = {
+		headers: new HttpHeaders({
 		'userName': this.loginApiService.getUserName(),
-	    'jwtKey': this.loginApiService.getJwtKey()
-	  }),
-	   params: new HttpParams()
-	   .append('subject', subject)
+		'jwtKey': this.loginApiService.getJwtKey()
+		}),
+		params: new HttpParams()
+		.append('richText', richText)
 
 	};  
-	  
-    return this.http.post<string>(this.setSubjectUrl, "" , httpOptions)
-      .pipe(
-		  //tap(_ => this.log(`updated hero `)),
-       	  catchError(this.handleError<any>('setSubject'))
-      );
-  }
-  
-  
-  setRichText(richText : string): Observable<string> {
-	 const httpOptions = {
-	  headers: new HttpHeaders({
+		
+	return this.http.post<string>(this.setRichTextUrl, "" , httpOptions)
+		.pipe(
+		//tap(_ => this.log(`updated hero `)),
+		catchError(this.handleError<any>('setRichText'))
+		);
+	}
+
+
+	setFrom(from : string): Observable<string> {
+		const httpOptions = {
+		headers: new HttpHeaders({
 		'userName': this.loginApiService.getUserName(),
-	     'jwtKey': this.loginApiService.getJwtKey()
-	  }),
-	   params: new HttpParams()
-	   .append('richText', richText)
+		'jwtKey': this.loginApiService.getJwtKey()
+		}),
+		params: new HttpParams()
+		.append('from', from)
+		};  
+	return this.http.post<string>(this.setFromUrl, "" , httpOptions)
+		.pipe(
+			//tap(_ => this.log(`updated hero `)),
+			catchError(this.handleError<any>('setFrom'))
+		);
+	}
 
-	};  
-	  
-    return this.http.post<string>(this.setRichTextUrl, "" , httpOptions)
-      .pipe(
-		  //tap(_ => this.log(`updated hero `)),
-       	  catchError(this.handleError<any>('setRichText'))
-      );
-  }
-  
-  
-  setFrom(from : string): Observable<string> {
-	 const httpOptions = {
-	  headers: new HttpHeaders({
+
+
+	setForward(forward  : string): Observable<string> {
+		const httpOptions = {
+			
+		headers: new HttpHeaders({
 		'userName': this.loginApiService.getUserName(),
-	    'jwtKey': this.loginApiService.getJwtKey()
-	  }),
-	   params: new HttpParams()
-	   .append('from', from)
+		'jwtKey': this.loginApiService.getJwtKey()
+		}),
+		params: new HttpParams()
+		.append('forward', forward)
 
 	};  
-	  
-    return this.http.post<string>(this.setFromUrl, "" , httpOptions)
-      .pipe(
-		  //tap(_ => this.log(`updated hero `)),
-       	  catchError(this.handleError<any>('setFrom'))
-      );
-  }
-  
-  
-  
-  setForward(forward  : string): Observable<string> {
-	 const httpOptions = {
-	  headers: new HttpHeaders({
-	   'userName': this.loginApiService.getUserName(),
-	    'jwtKey': this.loginApiService.getJwtKey()
-	  }),
-	   params: new HttpParams()
-	   .append('forward', forward)
+		
+	return this.http.post<string>(this.setForwardUrl, "" ,  httpOptions)
+		.pipe(
+			//tap(_ => this.log(`updated hero `)),
+			catchError(this.handleError<any>('setForward'))
+		);
+	}
+
+
+	setCid(cid  : string): Observable<string> {
+		const httpOptions = {
+		headers: new HttpHeaders({
+		'userName': this.loginApiService.getUserName(),
+		'jwtKey': this.loginApiService.getJwtKey()
+		}),
+		params: new HttpParams()
+		.append('cid', cid)
 
 	};  
-	  
-    return this.http.post<string>(this.setForwardUrl, "" ,  httpOptions)
-      .pipe(
-		  //tap(_ => this.log(`updated hero `)),
-       	  catchError(this.handleError<any>('setForward'))
-      );
-  }
-  
-  
-  setCid(cid  : string): Observable<string> {
-	 const httpOptions = {
-	  headers: new HttpHeaders({
-	   'userName': this.loginApiService.getUserName(),
-	    'jwtKey': this.loginApiService.getJwtKey()
-	  }),
-	   params: new HttpParams()
-	   .append('cid', cid)
+		
+	return this.http.post<string>(this.setCidUrl, "" ,  httpOptions)
+		.pipe(
+			//tap(_ => this.log(`updated hero `)),
+			catchError(this.handleError<any>('setCid'))
+		);
+	}
 
-	};  
-	  
-    return this.http.post<string>(this.setCidUrl, "" ,  httpOptions)
-      .pipe(
-		  //tap(_ => this.log(`updated hero `)),
-       	  catchError(this.handleError<any>('setCid'))
-      );
-  }
-  
-  
-  
-  
+
+
+
   setCc(cc  : string): Observable<string> {
 	 const httpOptions = {
 	  headers: new HttpHeaders({

@@ -12,7 +12,7 @@ export const messageContentResponse: MessageContentResponse = {
 		subject  : "",
 		body  : "",
 		receivedDate  : "",
-		attachment:[ { contentType  : "", fileName  : "" , file: { path  : "", name  : ""},charset  : "",saved: false }]
+		attachment:[ { contentType  : "", fileName  : "" , file: { path  : "", name  : ""},charset  : "", saved: false }]
 	} 
 
 };
@@ -23,9 +23,9 @@ export interface MailMessageModel {
 	cc  : string,
 	bcc  : string,
 	subject  : string,
+	attachment: FileItem[]
 	body  : string,
 	receivedDate  : string,
-	attachment: FileItem[]
 }
 
 export interface FileItem {

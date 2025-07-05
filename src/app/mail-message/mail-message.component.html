@@ -1,9 +1,9 @@
 
- <mat-card>
-	  <mat-button-toggle-group (change)="toggleChange($event)" name="fontStyle" aria-label="Font Style">
-	  </mat-button-toggle-group>
- </mat-card>
- 
+<mat-card>
+  <mat-button-toggle-group (change)="toggleChange($event)" name="fontStyle" aria-label="Font Style">
+  </mat-button-toggle-group>
+</mat-card>
+
 <!-- Sticky footer for Reply/Forward -->
 <div class="sticky-footer" *ngIf="!hasSubmitButton">
   <button class="reply-icon-btn" (click)="replyMessage()">
@@ -13,7 +13,7 @@
     <ion-icon name="arrow-redo-outline"></ion-icon>
   </button>
 </div>
- 	   
+
 <!-- Main content with extra bottom padding -->
 <div class="mail-message-content">
 <form [formGroup]="addressForm" novalidate (ngSubmit)="onSubmit()">
@@ -63,26 +63,24 @@
       </mat-card>
     </div>
   </div>
-  <div class="row">
+  <!-- <div class="row">
     <div class="col">
       
     </div>
-  </div>
+  </div> -->
   @if (files.length > 0 || showUploadFile ) {
   <div class="row">
     <div class="col">
 			<mat-card >
-			  <mat-card-content>
-			    
-			     @if (showUploadFile) {
-				 <app-file-upload  (uploadedFileEvent)="uploadedFile($event)"  ></app-file-upload>
-			     }
-	           	 @else
-	             {
-         	   	   <app-file-display  [files]=files  ></app-file-display>
-	             } 
-			  </mat-card-content>
-
+        <mat-card-content>
+          @if (showUploadFile) {
+            <app-file-upload  (uploadedFileEvent)="uploadedFile($event)"></app-file-upload>
+            }
+            @else
+            {
+              <app-file-display  [files]=files></app-file-display>
+            } 
+        </mat-card-content>
 			</mat-card>
     </div>
   </div>
@@ -91,49 +89,48 @@
   <div class="row">
     <div class="col">
 			<mat-card class="example-card">
-			  <mat-card-content>
-			    
-			     @if (hasBody) {
-         	   	  <ng-container *ngIf="!isMobile">
-         	   	  <ngx-editor-menu [editor]="editor"> </ngx-editor-menu>
-         	   	  </ng-container>
-         	   	  <ngx-editor [editor]="editor"  [placeholder]="'Type here...'" formControlName="body"  ></ngx-editor>
-			     }
-	           	 @else
-	             {
-         	   	   <div [innerHTML]="messageContent?.body"></div>
-	             } 
-			  </mat-card-content>
-
+        <mat-card-content>
+            @if (hasBody) {
+              <ng-container *ngIf="!isMobile">
+                <ngx-editor-menu [editor]="editor"> </ngx-editor-menu>
+              </ng-container>
+              <ngx-editor [editor]="editor"  [placeholder]="'Type here...'" formControlName="body"  ></ngx-editor>
+            }
+              @else
+              {
+                <div class="message-body" [innerHTML]="cleanedBody"></div>
+              } 
+        </mat-card-content>
 			</mat-card>
     </div>
   </div>
 
-  <div class="row">
+  <div class="row" *ngIf="!isReplyMode && !isForwardMode && !hasSubmitButton">
     <div class="col">
       <ion-item-divider lines="full"></ion-item-divider>
     </div>
   </div>
-  <div class="row">
+  <div class="row" *ngIf="!isReplyMode && !isForwardMode && !hasSubmitButton">
     <div class="col">
       <mat-card class="attachment-list">
         <mat-card-content>
-          <div *ngIf="messageContent && messageContent.attachment.length > 0; else noAttachments" class="attachments-list attachment-box">
-            <div *ngFor="let file of messageContent.attachment" class="attachment-item">
-              <button (click)="downloadAttachment(file)" class="download-btn">
-                <ion-icon name="download-outline"></ion-icon>
-                {{ file.fileName }}
+          <div *ngIf="mergedAttachments.length > 0; else noAttachments" class="attachments-list attachment-box">
+            <div *ngFor="let file of mergedAttachments" class="attachment-item">
+              <ion-icon name="document-outline" class="attachment-icon"></ion-icon>
+              <button type="button" (click)="downloadAttachment(file)" class="download-btn">
+                <span class="attachment-name">{{ file.fileName }}</span>
+                <span *ngIf="file.size" class="attachment-size"> ({{ file.size }})</span>
+                <ion-icon name="download-outline" class="attachment-download-icon"></ion-icon>
               </button>
             </div>
             <span class="spacer"></span>
-            <ion-icon name="download-outline" class="attachment-download-icon blue"></ion-icon>
           </div>
           <ng-template #noAttachments>
             <div class="no-attachments attachment-box">
               <ion-icon name="document-outline"></ion-icon>
               No attachments
               <span class="spacer"></span>
-              <ion-icon name="download-outline" class="attachment-download-icon gray"></ion-icon>
+              <ion-icon name="download-outline" class="attachment-download-icon"></ion-icon>
             </div>
           </ng-template>
         </mat-card-content>
@@ -141,19 +138,6 @@
     </div>
   </div>
 
-  <div class="row">
-    <div class="col">
-      @if (hasPriorityButton) { 
-      <mat-radio-group class="radio-button-scale"  formControlName="shipping">
-        <mat-radio-button value="free"><span class="radio-button-scale-label">High priority</span></mat-radio-button>
-        <mat-radio-button value="priority"><span class="radio-button-scale-label">Middle priority</span></mat-radio-button>
-        <mat-radio-button value="nextday"><span class="radio-button-scale-label">Low priority</span></mat-radio-button>
-      </mat-radio-group>
-       }
-    </div>
-  </div>
-  @if (hasSubmitButton) { 
-  }
 </form>
 </div>
 

@@ -6,7 +6,7 @@ import {
   archive, trash, createOutline, checkmarkCircleOutline, archiveOutline, trashOutline, closeOutline, arrowBackOutline,
   mailOutline, sendOutline, documentTextOutline, alertCircleOutline, arrowUpOutline, attachOutline, saveOutline,
   arrowUndoOutline, arrowRedoOutline, logOutOutline, logOut, eyeOutline, eyeOffOutline, downloadOutline, documentOutline,
-  chevronUpOutline, chevronDownOutline, contrastOutline
+  chevronUpOutline, chevronDownOutline, contrastOutline, star, starOutline
 } from 'ionicons/icons';
 import { ThemeService } from './theme.service';
 
@@ -26,7 +26,7 @@ export class AppComponent {
       archive, trash, createOutline, checkmarkCircleOutline, archiveOutline, trashOutline, closeOutline, arrowBackOutline,
       mailOutline, sendOutline, documentTextOutline, alertCircleOutline, arrowUpOutline, attachOutline, saveOutline,
       arrowUndoOutline, arrowRedoOutline, logOutOutline, logOut, eyeOutline, eyeOffOutline, downloadOutline, documentOutline,
-      chevronUpOutline, chevronDownOutline, contrastOutline
+      chevronUpOutline, chevronDownOutline, contrastOutline, star, starOutline
     });
   }
 }

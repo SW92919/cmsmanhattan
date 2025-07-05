@@ -10,7 +10,9 @@ import { CommonModule } from '@angular/common';
 })
 export class FileDisplayComponent {
 	
-	@Input() files!:string[];
+	@Input() files!: Array<string | { fileName: string, contentType?: string, size?: number }>;
     
-
+	getFileName(file: any): string {
+		return (file && typeof file === 'object' && file.fileName) ? file.fileName : String(file);
+	}
 }

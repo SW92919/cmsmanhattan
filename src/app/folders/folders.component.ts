@@ -24,7 +24,7 @@ export interface Section {
   styleUrl: './folders.component.css',
   templateUrl: './folders.component.html',
   standalone: true,
-  imports: [CommonModule, IonicModule, MatListModule, MatIconModule, MatDividerModule, DatePipe,MatBadgeModule,MatButtonToggleModule,RouterModule],
+  imports: [CommonModule, IonicModule, MatListModule, MatIconModule, MatDividerModule, DatePipe, MatBadgeModule, MatButtonToggleModule, RouterModule],
 
   
 })
@@ -44,7 +44,7 @@ export class FoldersComponent implements OnInit{
 	) { 
 		
 	}
-    ngOnInit(): void {
+  ngOnInit(): void {
 		let folder = this.route.snapshot.queryParamMap.get('folder');
 		if(folder === '' || folder == null ) {
       this.currentFolder = 'Inbox';
@@ -53,17 +53,18 @@ export class FoldersComponent implements OnInit{
     }
 		
 		this.foldersApiService.getAllFolderList().subscribe(folderResponse => {
-      this.folders = []; // Clear the array before repopulating
-		  for (let i = 0; i < folderResponse.length; i++) {
+    this.folders = []; // Clear the array before repopulating
+    for (let i = 0; i < folderResponse.length; i++) 
+      {
         const originalName = folderResponse[i].name;
         // Format the name to Title Case
         const formattedName = originalName.charAt(0).toUpperCase() + originalName.slice(1).toLowerCase();
-			  this.folders.push({
-			      name: formattedName,
-			      updated: new Date(),
-			    })
-			}
-      })
+        this.folders.push({
+            name: formattedName,
+            updated: new Date(),
+          })
+      }
+    })
   }
 
   notes: Section[] = [
@@ -78,7 +79,7 @@ export class FoldersComponent implements OnInit{
   ];
   
   getUserName(): string {
-  	return this.loginApiService.getUserName() ;
+    return this.loginApiService.getUserName() ;
   }
   
   getFolderName(): string {
@@ -91,10 +92,10 @@ export class FoldersComponent implements OnInit{
 		// console.log('🔍 Folders - Navigating to /app with folder param:', folderName.toUpperCase());
 		this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
 			this.router.navigate(
-			    ['/app'],
-          // Convert to uppercase for the backend API
-			    { queryParams: { folder: folderName.toUpperCase() } }
-			  )
+        ['/app'],
+        // Convert to uppercase for the backend API
+        { queryParams: { folder: folderName.toUpperCase() } }
+      )
 		});
 	}
 
@@ -127,5 +128,4 @@ export class FoldersComponent implements OnInit{
       document.body.classList.remove('dark');
     }
   }
-
 }

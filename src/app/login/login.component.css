@@ -7,21 +7,30 @@
   background-size: cover;
 }
 
-.login-content {
+/* .login-content {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   justify-content: space-between;
   align-items: center;
   padding: 0;
+} */
+
+ion-content, .login-content {
+  height: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .login-center {
-  flex: 1 0 auto;
+  /* flex: 1 0 auto; */
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  flex: 1;
 }
 
 .login-card {

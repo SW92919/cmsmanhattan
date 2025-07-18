@@ -1,0 +1,180 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ fileName }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="close()">
+        <ion-icon name="close-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="file-preview-content">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Loading preview...</p>
+  </div>
+
+  <!-- Image Preview -->
+  <div
+    *ngIf="!isLoading && isImageFile"
+    class="image-container"
+    (wheel)="onWheel($event)"
+    (mousedown)="onMouseDown($event)"
+    (mousemove)="onMouseMove($event)"
+    (mouseup)="onMouseUp($event)"
+    (mouseleave)="onMouseUp($event)"
+  >
+    <img
+      [src]="fileUrl"
+      [alt]="fileName"
+      [style.transform]="
+        'scale(' + zoom + ') translate(' + panX + 'px, ' + panY + 'px)'
+      "
+      class="preview-image"
+      (load)="onFileLoad()"
+      (error)="onFileError()"
+    />
+  </div>
+
+  <!-- PDF Preview -->
+  <div *ngIf="!isLoading && isPdfFile" class="pdf-container">
+    <!-- PDF Options -->
+    <div class="pdf-fallback">
+      <div class="pdf-info">
+        <ion-icon name="document-text-outline" class="pdf-icon"></ion-icon>
+        <h3>{{ fileName }}</h3>
+        <p>Choose how you'd like to view this PDF:</p>
+        <div class="action-buttons">
+          <ion-button
+            (click)="openPdfJsViewer()"
+            fill="solid"
+            color="primary"
+          >
+            <ion-icon name="document-text-outline" slot="start"></ion-icon>
+            {{ isNative ? 'Open in App' : 'Open in PDF Viewer' }}
+          </ion-button>
+          <ion-button
+            (click)="openInBrowser()"
+            fill="outline"
+            color="secondary"
+          >
+            <ion-icon name="open" slot="start"></ion-icon>
+            {{ isNative ? 'Open in Browser' : 'Open in New Tab' }}
+          </ion-button>
+          <ion-button
+            (click)="downloadFile()"
+            fill="outline"
+            color="tertiary"
+          >
+            <ion-icon name="download-outline" slot="start"></ion-icon>
+            Download PDF
+          </ion-button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Preview -->
+  <div *ngIf="!isLoading && isVideoFile" class="video-container">
+    <video
+      [src]="fileUrl"
+      controls
+      class="video-player"
+      (loadeddata)="onFileLoad()"
+      (error)="onFileError()"
+    >
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <!-- Audio Preview -->
+  <div *ngIf="!isLoading && isAudioFile" class="audio-container">
+    <div class="audio-info">
+      <ion-icon name="musical-notes-outline" class="audio-icon"></ion-icon>
+      <h3>{{ fileName }}</h3>
+    </div>
+    <audio
+      [src]="fileUrl"
+      controls
+      class="audio-player"
+      (loadeddata)="onFileLoad()"
+      (error)="onFileError()"
+    >
+      Your browser does not support the audio tag.
+    </audio>
+  </div>
+
+  <!-- Text File Preview -->
+  <div *ngIf="!isLoading && isTextFile" class="text-container">
+    <pre class="text-content" [innerHTML]="textContent"></pre>
+    <div *ngIf="!textContent" class="text-error">
+      <p>
+        No content to display. The file might be empty or could not be
+        loaded.
+      </p>
+      <ion-button (click)="downloadFile()" fill="solid" color="primary">
+        <ion-icon name="download-outline" slot="start"></ion-icon>
+        Download File
+      </ion-button>
+    </div>
+  </div>
+
+  <!-- Generic File Preview -->
+  <div
+    *ngIf="
+      !isLoading &&
+      !isImageFile &&
+      !isPdfFile &&
+      !isTextFile &&
+      !isVideoFile &&
+      !isAudioFile
+    "
+    class="generic-container"
+  >
+    <div class="file-info">
+      <ion-icon [name]="getFileIcon()" class="file-icon"></ion-icon>
+      <h3>{{ fileName }}</h3>
+      <p>{{ getFileTypeDescription() }}</p>
+      <div class="action-buttons">
+        <ion-button (click)="downloadFile()" fill="solid" color="primary">
+          <ion-icon name="download-outline" slot="start"></ion-icon>
+          Download File
+        </ion-button>
+        <ion-button
+          (click)="openInBrowser()"
+          fill="outline"
+          color="secondary"
+        >
+          <ion-icon name="open" slot="start"></ion-icon>
+          Open in Browser
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="hasError" class="error">
+    <ion-icon name="alert-circle-outline"></ion-icon>
+    <h3>Preview Error</h3>
+    <p>Unable to preview this file.</p>
+    <ion-button (click)="downloadFile()" fill="solid">
+      <ion-icon name="download-outline" slot="start"></ion-icon>
+      Download Instead
+    </ion-button>
+  </div>
+
+  <!-- Zoom Controls (only for images) -->
+  <div *ngIf="!isLoading && !hasError && isImageFile" class="zoom-controls">
+    <ion-button fill="clear" (click)="zoomOut()" [disabled]="zoom <= 0.5">
+      <ion-icon name="remove-outline"></ion-icon>
+    </ion-button>
+    <ion-button fill="clear" (click)="resetZoom()">
+      <ion-icon name="refresh-outline"></ion-icon>
+    </ion-button>
+    <ion-button fill="clear" (click)="zoomIn()" [disabled]="zoom >= 3">
+      <ion-icon name="add-outline"></ion-icon>
+    </ion-button>
+  </div>
+</ion-content> 

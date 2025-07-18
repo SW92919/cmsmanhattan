@@ -98,14 +98,14 @@
             }
               @else
               {
-                <div class="message-body" [innerHTML]="cleanedBody"></div>
-              } 
+                <div class="message-body" [innerHTML]="safeCleanedBody" (click)="onBodyLinkClick($event)"></div>
+              }
         </mat-card-content>
 			</mat-card>
     </div>
   </div>
 
-  <div class="row" *ngIf="!isReplyMode && !isForwardMode && !hasSubmitButton">
+  <div class="row" *ngIf="!isReplyMode && !isForwardMode && !hasSubmitButton && mergedAttachments.length > 0">
     <div class="col">
       <ion-item-divider lines="full"></ion-item-divider>
     </div>
@@ -113,31 +113,30 @@
   <div class="row" *ngIf="!isReplyMode && !isForwardMode && !hasSubmitButton">
     <div class="col">
       <mat-card class="attachment-list">
-        <mat-card-content>
-          <div *ngIf="mergedAttachments.length > 0; else noAttachments" class="attachments-list attachment-box">
-            <div *ngFor="let file of mergedAttachments" class="attachment-item">
+        <!-- <mat-card-content> -->
+          <div *ngIf="mergedAttachments.length > 0;" class="attachments-list attachment-box">
+            <div *ngFor="let file of mergedAttachments; let last = last" class="attachment-item" [ngStyle]="{'margin-bottom': last ? '0' : '1em'}" [ngClass]="{'last-item': last}">
               <ion-icon name="document-outline" class="attachment-icon"></ion-icon>
               <button type="button" (click)="downloadAttachment(file)" class="download-btn">
                 <span class="attachment-name">{{ file.fileName }}</span>
-                <span *ngIf="file.size" class="attachment-size"> ({{ file.size }})</span>
+                <!-- <span *ngIf="file.size" class="attachment-size"> ({{ formatSize(file.size) }})</span> -->
                 <ion-icon name="download-outline" class="attachment-download-icon"></ion-icon>
               </button>
             </div>
             <span class="spacer"></span>
           </div>
-          <ng-template #noAttachments>
+          <!-- <ng-template #noAttachments>
             <div class="no-attachments attachment-box">
               <ion-icon name="document-outline"></ion-icon>
               No attachments
               <span class="spacer"></span>
               <ion-icon name="download-outline" class="attachment-download-icon"></ion-icon>
             </div>
-          </ng-template>
-        </mat-card-content>
+          </ng-template> -->
+        <!-- </mat-card-content> -->
       </mat-card>
     </div>
   </div>
-
 </form>
 </div>
 

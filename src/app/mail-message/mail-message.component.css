@@ -137,9 +137,12 @@ body, .mat-typography {
 }
 
 .attachment-list {
-  margin: 5px 0 0 0;
+  margin: 1.2rem 0 0 0;
   background: transparent;
   box-shadow: none;
+  overflow: hidden;
+  text-wrap: nowrap;
+
 }
 .attachment-card {
   display: flex;
@@ -336,13 +339,14 @@ body, .mat-typography {
   background: var(--background-secondary);
   border-radius: 8px;
   padding: 12px;
-;
   display: flex;
+  flex-direction: column;
   align-items: center;
   width: 100%;
+
 }
 
-.no-attachments {
+/* .no-attachments {
   color: var(--text-secondary);
   font-size: 1.1rem;
 }
@@ -351,40 +355,72 @@ body, .mat-typography {
   font-size: 1.5em;
   color: var(--icon-color);
   margin-right: 20px;
-}
+} */
 
 .attachment-box {
   display: flex;
+  flex-direction: column;
   align-items: center;
   position: relative;
+  width: 100%;
 }
 
-.spacer {
-  flex: 1 1 auto;
-}
 .attachment-item {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-end;
   width: 100%;
+  margin-bottom: 0.9em;
 }
-.attachment-icon {
+
+.attachment-item:last-child {
+  margin-bottom: 0 !important;
+}
+/* .attachment-icon {
   font-size: 1.7rem;
   margin-left: 0.2rem;
   vertical-align: middle;
   color: var(--icon-color);
 }
 .attachment-download-icon {
-  font-size: 1.7rem;
+  font-size: 1.7rem !important;
+  width: 1.7rem !important;
   margin-left: 1rem;
   vertical-align: middle;
   color: var(--icon-color);
+} */
+.attachment-icon, /* document-outline icon */
+.attachment-download-icon { /* download-outline icon */
+  font-size: 1.6rem;      /* or the same value for both */
+  width: 1.6rem;
+  height: 1.6rem;
+  min-width: 1.6rem;
+  min-height: 1.6rem;
+  max-width: 1.6rem;
+  max-height: 1.6rem;
+  flex-shrink: 0;         /* Prevent shrinking */
+  flex-grow: 0;           /* Prevent growing */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  color: var(--icon-text-color) !important;
+  margin-right: 0.5em;    /* Adjust as needed for spacing */
+  margin-left: 0.5em;     /* For download icon, if needed */
 }
 
+/* Specifically for the download icon at the end */
+.attachment-download-icon {
+  margin-left: auto;      /* Pushes it to the far right */
+  margin-right: 0;        /* Remove right margin if present */
+}
 .download-btn {
   width: 100%;
   background: transparent;
+  white-space: normal;         
+  overflow-wrap: hidden;   
+  word-break: break-all;
   border: none;
   outline: none;
   cursor: pointer;
@@ -395,12 +431,19 @@ body, .mat-typography {
   text-align: left;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
-.attachment-name, .attachment-size {
-  overflow: hidden;
+.attachment-name {
+  overflow: hidden ;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  max-width: 100%;
+}
+
+.attachment-size {
+  overflow-wrap: hidden ;
+  text-overflow: ellipsis;
+  white-space: normal;
   max-width: 100%;
 }
 .mat-mdc-radio-button.mat-accent{
@@ -419,4 +462,35 @@ ion-item-divider {
 .message-body {
   font-size: 1.05rem;
   line-height: 1.7;
+}
+
+/* Styles for clickable links in message body */
+.message-body a {
+  color: #1976d2;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.message-body a:hover {
+  color: #1565c0;
+  text-decoration: underline;
+}
+
+.message-body a:active {
+  color: #0d47a1;
+}
+
+/* Style for attachment links specifically */
+.message-body a[href*="attachment"], 
+.message-body a[href*="download"],
+.message-body a[href*="file"] {
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+.message-body a[href*="attachment"]:hover, 
+.message-body a[href*="download"]:hover,
+.message-body a[href*="file"]:hover {
+  color: #1b5e20;
 }

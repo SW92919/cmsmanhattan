@@ -88,4 +88,40 @@ ion-icon, .mat-icon {
 }
 
 /* Add more as needed for your app's components */
+
+/* File Preview Modal Styles */
+.file-preview-modal {
+  --height: 100%;
+  --width: 100%;
+  --background: #000;
+}
+
+.file-preview-modal .modal-wrapper {
+  background: #000;
+}
+
+.file-preview-modal ion-header {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.file-preview-modal ion-toolbar {
+  --background: transparent;
+  --color: white;
+}
+
+.file-preview-modal ion-content {
+  --background: #000;
+}
+
+/* Action Sheet Text Color Override */
+ion-action-sheet .action-sheet-button {
+  color: var(--text-color) !important;
+}
+
+ion-action-sheet .action-sheet-title {
+  color: var(--text-color) !important;
+}
+
+
   

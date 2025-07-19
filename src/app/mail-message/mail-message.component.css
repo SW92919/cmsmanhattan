@@ -236,6 +236,69 @@ body, .mat-typography {
   box-sizing: border-box;
 }
 
+/* Mobile textarea specific styling */
+.mobile-textarea {
+  font-family: inherit !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+  -webkit-tap-highlight-color: transparent !important;
+  display: block !important;
+  min-height: 300px !important;
+  height: calc(100vh - 400px) !important; /* Full available height minus header/footer */
+}
+
+/* Ensure copy/paste works on mobile */
+.mobile-textarea:focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Container styling for mobile textarea */
+.example-card .mat-card-content {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.example-card .mat-card-content > *:first-child {
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+
+/* Make message body row take full available height */
+.row:has(.example-card) {
+  flex: 1 !important;
+  min-height: 0 !important;
+  display: flex !important;
+}
+
+.row:has(.example-card) .col {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.row:has(.example-card) .example-card {
+  flex: 1 !important;
+  min-height: 0 !important;
+}
+
+/* Ensure the form takes full height */
+form {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.mail-message-content {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
 /* Responsive radio group for mobile: stack vertically */
 @media (max-width: 600px) {
 
@@ -247,8 +310,11 @@ body, .mat-typography {
   box-shadow: none !important;
   background: transparent !important;
   overflow-wrap: break-word;
-    white-space: normal;
-    word-break: break-all;
+  white-space: normal;
+  word-break: break-all;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 ::ng-deep .ProseMirror {
@@ -462,6 +528,35 @@ ion-item-divider {
 .message-body {
   font-size: 1.05rem;
   line-height: 1.7;
+}
+
+.message-content-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.three-dots-btn {
+  position: absolute;
+  bottom: 40px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  z-index: 10;
+}
+
+.three-dots-btn:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.three-dots-btn:active {
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
 /* Styles for clickable links in message body */

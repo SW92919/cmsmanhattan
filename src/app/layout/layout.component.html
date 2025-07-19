@@ -26,19 +26,29 @@
         <ion-title>{{ title }}</ion-title>
       </ion-toolbar>
 
-      <!-- Message View Toolbar -->
-      <ion-toolbar *ngIf="!selectionModeActive && currentMessageSubject" class="normal-toolbar">
+      <!-- Message View Toolbar (with action icons) -->
+      <ion-toolbar *ngIf="!selectionModeActive && currentMessageSubject && !isComposing && !isReplyMode && !isForwardMode" class="normal-toolbar">
         <ion-buttons slot="start">
           <ion-button (click)="closeMessageView()" >
             <ion-icon name="arrow-back-outline" ></ion-icon>
           </ion-button>
         </ion-buttons>
         <ion-buttons slot="end">
-          <ion-button class="action-button" (click)="saveMessage()">
+          <ion-button *ngIf="currentFolder !== 'ARCHIVE'" class="action-button" (click)="saveMessage()">
             <ion-icon slot="icon-only" name="archive-outline"></ion-icon>
           </ion-button>
           <ion-button class="action-button" (click)="deleteCurrentMessage()">
             <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+        <!-- <ion-title class="message-subject-title">{{ currentMessageSubject }}</ion-title> -->
+      </ion-toolbar>
+
+      <!-- Compose/Reply/Forward Toolbar (without action icons) -->
+      <ion-toolbar *ngIf="!selectionModeActive && currentMessageSubject && (isComposing || isReplyMode || isForwardMode)" class="normal-toolbar">
+        <ion-buttons slot="start">
+          <ion-button (click)="closeMessageView()" >
+            <ion-icon name="arrow-back-outline" ></ion-icon>
           </ion-button>
         </ion-buttons>
         <!-- <ion-title class="message-subject-title">{{ currentMessageSubject }}</ion-title> -->
@@ -54,7 +64,7 @@
         </ion-buttons>
         
         <ion-buttons slot="end">
-          <ion-button class="action-button" (click)="archiveSelected()">
+          <ion-button *ngIf="currentFolder !== 'ARCHIVE'" class="action-button" (click)="archiveSelected()">
             <ion-icon slot="icon-only" name="archive-outline"></ion-icon>
           </ion-button>
           <ion-button class="action-button" (click)="deleteSelected()">
@@ -80,7 +90,7 @@
       <router-outlet (activate)="onActivate($event)"></router-outlet>
       
       <!-- Floating Action Button for composing a new message -->
-      <ion-fab *ngIf="!selectionModeActive && !isComposing" slot="fixed" vertical="bottom" horizontal="end">
+      <ion-fab *ngIf="!selectionModeActive && !currentMessageSubject" slot="fixed" vertical="bottom" horizontal="end">
         <ion-fab-button (click)="onComposeClick()">
           <ion-icon name="create-outline"></ion-icon>
         </ion-fab-button>

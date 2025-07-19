@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { FilePreviewComponent } from './image-preview.component';
+import { FilePreviewComponent } from './file-preview.component';
 
 describe('FilePreviewComponent', () => {
   let component: FilePreviewComponent;

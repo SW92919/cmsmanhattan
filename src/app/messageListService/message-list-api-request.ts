@@ -1,46 +1,43 @@
 export interface SearchMessageRequest {
-	searchkey:string,
-	folder:string
+  searchkey: string;
+  folder: string;
 }
 
 export const searchMessageRequest: SearchMessageRequest = {
-    searchkey:"",
-    folder:""
+  searchkey: '',
+  folder: '',
 };
 
 export interface MessageListRequest {
-	startMsgNumber:number , 
-	lastMsgNumber:number ,
-	folder:string
+  startMsgNumber: number;
+  lastMsgNumber: number;
+  folder: string;
 }
 
 export const messageListRequest: MessageListRequest = {
-    startMsgNumber:0,
-    lastMsgNumber:20,
-    folder:""
+  startMsgNumber: 0,
+  lastMsgNumber: 20,
+  folder: '',
 };
 
-
 export interface DeleteMessageRequest {
-	folder:string,
-	message:string[]
+  folder: string;
+  message: string[];
 }
 
 export const deleteMessageRequest: DeleteMessageRequest = {
-    folder:"",
-	message:[]
+  folder: '',
+  message: [],
 };
 
 export interface MoveMessageRequest {
-	name:string,
-	message:string[],
-	destination:string
+  folder: string;
+  message: string[];
+  destination: string;
 }
 
-
 export const moveMessageRequest: MoveMessageRequest = {
-    name:"",
-	message:[],
-	destination:""
-
+  folder: '',
+  message: [],
+  destination: '',
 };

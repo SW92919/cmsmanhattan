@@ -31,7 +31,7 @@ export class FileUploadComponent {
 
   fileName = '';
   uploadProgress: number = 0;
-  uploadSub!: Subscription;
+  uploadSub: Subscription | null = null;
   private handleError!: HandleError;
 
   constructor(
@@ -63,27 +63,38 @@ export class FileUploadComponent {
           catchError(this.handleError<any>('upload'))
         );
 
-      this.uploadSub = upload$.subscribe((event) => {
-        if (event.type == HttpEventType.UploadProgress) {
-          const total = event.total;
-          this.uploadProgress = Math.round(100 * (event.loaded / total!));
-          this.uploadedFileEvent.emit({
-            fileName: file.name,
-            contentType: file.type || 'application/octet-stream',
-            size: file.size,
-          });
+      this.uploadSub = upload$.subscribe(
+        (event) => {
+          if (event.type == HttpEventType.UploadProgress) {
+            const total = event.total;
+            this.uploadProgress = Math.round(100 * (event.loaded / total!));
+          } else if (event.type == HttpEventType.Response) {
+            // Upload completed successfully
+            console.log('File upload completed:', file.name);
+            this.uploadedFileEvent.emit({
+              fileName: file.name,
+              contentType: file.type || 'application/octet-stream',
+              size: file.size,
+            });
+          }
+        },
+        (error) => {
+          console.error('File upload error:', error);
+          this.reset();
         }
-      });
+      );
     }
   }
 
   cancelUpload() {
-    this.uploadSub.unsubscribe();
+    if (this.uploadSub) {
+      this.uploadSub.unsubscribe();
+    }
     this.reset();
   }
 
   reset() {
     this.uploadProgress = 0;
-    this.uploadSub != null;
+    this.uploadSub = null;
   }
 }

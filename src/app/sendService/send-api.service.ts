@@ -45,6 +45,13 @@ export class SendApiService {
       }),
     };
 
+    console.log(
+      '🔍 SendApiService - sendMail called with request:',
+      JSON.stringify(mailMessageSendRequest, null, 2)
+    );
+    console.log('🔍 SendApiService - URL:', this.sendMailUrl);
+    console.log('🔍 SendApiService - Headers:', httpOptions.headers);
+
     return this.http
       .post<string>(this.sendMailUrl, mailMessageSendRequest, httpOptions)
       .pipe(

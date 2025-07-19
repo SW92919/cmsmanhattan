@@ -91,10 +91,43 @@
 			<mat-card class="example-card">
         <mat-card-content>
             @if (hasBody) {
-              <ng-container *ngIf="!isMobile">
-                <ngx-editor-menu [editor]="editor"> </ngx-editor-menu>
+              <!-- Use simple textarea for mobile to fix copy/paste issues -->
+              <ng-container *ngIf="isMobile">
+                <div class="message-content-container">
+                                  <textarea 
+                  class="mobile-textarea" 
+                  formControlName="body" 
+                  placeholder="Type here..."
+                  (input)="onBodyContentChange()"
+                  style="width: 100%; height: 100%; border: none; outline: none; background: transparent; font-size: 1.05rem; line-height: 1.7rem; color: var(--text-color); resize: none; padding: 10px; box-sizing: border-box;"
+                ></textarea>
+                  <!-- Three dots button for reply/forward modes -->
+                  <button 
+                    *ngIf="(isReplyMode || isForwardMode) && showThreeDotsButton" 
+                    class="three-dots-btn" 
+                    (click)="toggleForwardedContent()"
+                    type="button"
+                  >
+                    <ion-icon name="ellipsis-horizontal"></ion-icon>
+                  </button>
+                </div>
               </ng-container>
-              <ngx-editor [editor]="editor"  [placeholder]="'Type here...'" formControlName="body"  ></ngx-editor>
+              <!-- Use rich text editor for desktop -->
+              <ng-container *ngIf="!isMobile">
+                <div class="message-content-container">
+                  <ngx-editor-menu [editor]="editor"> </ngx-editor-menu>
+                  <ngx-editor [editor]="editor" [placeholder]="'Type here...'" formControlName="body" (ngModelChange)="onBodyContentChange()"></ngx-editor>
+                  <!-- Three dots button for reply/forward modes -->
+                  <button 
+                    *ngIf="(isReplyMode || isForwardMode) && showThreeDotsButton" 
+                    class="three-dots-btn" 
+                    (click)="toggleForwardedContent()"
+                    type="button"
+                  >
+                    <ion-icon name="ellipsis-horizontal"></ion-icon>
+                  </button>
+                </div>
+              </ng-container>
             }
               @else
               {

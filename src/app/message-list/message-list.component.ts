@@ -88,6 +88,11 @@ export class MessageListComponent implements AfterViewInit {
   @Output() activeMessageSubject = new EventEmitter<string | null>();
   @Output() composeModeChange = new EventEmitter<boolean>();
   @Output() exitComposeMode = new EventEmitter<void>();
+  @Output() mailMessageModeChange = new EventEmitter<{
+    isComposing: boolean;
+    isReplyMode: boolean;
+    isForwardMode: boolean;
+  }>();
   selectionMode = false;
   selectedMessages = new Set<number>();
 
@@ -171,6 +176,24 @@ export class MessageListComponent implements AfterViewInit {
   public getAvatarField(message: MessageListItem): string {
     if (this.currentFolder && this.currentFolder.toUpperCase() === 'INBOX') {
       return message.from || 'Unknown';
+    } else if (
+      this.currentFolder &&
+      this.currentFolder.toUpperCase() === 'ARCHIVE'
+    ) {
+      // For Archive folder, we need to determine if this was originally from Inbox or Sent
+      // If the message has a 'from' field that matches the current user, it was likely sent by the user
+      // If not, it was likely received (from Inbox)
+      const currentUser = sessionStorage.getItem('userName') || '';
+      if (
+        message.from &&
+        message.from.toLowerCase().includes(currentUser.toLowerCase())
+      ) {
+        // This was likely a sent message, so show the recipient
+        return message.to || 'Unknown';
+      } else {
+        // This was likely a received message, so show the sender
+        return message.from || 'Unknown';
+      }
     } else {
       return message.to || 'Unknown';
     }
@@ -320,19 +343,22 @@ export class MessageListComponent implements AfterViewInit {
   // This is for mobile view
   onArchive(message: MessageListItem, slidingItem: IonItemSliding) {
     const moveRequest: MoveMessageRequest = {
-      name: this.currentFolder,
+      folder: this.currentFolder,
       message: [String(message.id)],
-      destination: 'Archive', // We assume a folder named 'Archive' exists.
+      destination: 'Archive',
     };
 
     this.messageListApiService
       .moveMessage(moveRequest)
       .subscribe((response) => {
-        // console.log('Archive response:', response);
-        // Visually remove the item from the list
+        console.log('Archive response:', response);
+        // Visually remove the item from the list immediately
         this.dataSource.data = this.dataSource.data.filter(
           (item) => item.id !== message.id
         );
+
+        // Refresh the list from server to ensure consistency
+        this.refreshMessagesAfterSend();
       });
 
     slidingItem.close();
@@ -349,10 +375,13 @@ export class MessageListComponent implements AfterViewInit {
       .deleteMessage(deleteRequest)
       .subscribe((response) => {
         // console.log('Delete response:', response);
-        // Visually remove the item from the list
+        // Visually remove the item from the list immediately
         this.dataSource.data = this.dataSource.data.filter(
           (item) => item.id !== message.id
         );
+
+        // Refresh the list from server to ensure consistency
+        this.refreshMessagesAfterSend();
       });
 
     slidingItem.close();
@@ -514,16 +543,20 @@ export class MessageListComponent implements AfterViewInit {
   public archiveSelectedMessages(): void {
     const selectedIds = Array.from(this.selectedMessages).map(String);
     const moveRequest: MoveMessageRequest = {
-      name: this.currentFolder,
+      folder: this.currentFolder,
       message: selectedIds,
       destination: 'Archive',
     };
 
     this.messageListApiService.moveMessage(moveRequest).subscribe(() => {
+      // Remove from local data source immediately for UI responsiveness
       this.dataSource.data = this.dataSource.data.filter(
         (item) => !this.selectedMessages.has(item.id)
       );
       this.clearSelectionMode();
+
+      // Refresh the list from server to ensure consistency
+      this.refreshMessagesAfterSend();
     });
   }
 
@@ -535,10 +568,14 @@ export class MessageListComponent implements AfterViewInit {
     };
 
     this.messageListApiService.deleteMessage(deleteRequest).subscribe(() => {
+      // Remove from local data source immediately for UI responsiveness
       this.dataSource.data = this.dataSource.data.filter(
         (item) => !this.selectedMessages.has(item.id)
       );
       this.clearSelectionMode();
+
+      // Refresh the list from server to ensure consistency
+      this.refreshMessagesAfterSend();
     });
   }
 
@@ -651,7 +688,10 @@ export class MessageListComponent implements AfterViewInit {
 
   // Public method to refresh messages (can be called from other components)
   public refreshMessagesAfterSend() {
-    // console.log('🔍 MessageList - Refreshing messages after send for folder:', this.currentFolder);
+    console.log(
+      '🔍 MessageList - refreshMessagesAfterSend called for folder:',
+      this.currentFolder
+    );
     let folder = this.currentFolder || 'INBOX';
     switch (folder) {
       case 'SENT':
@@ -670,56 +710,107 @@ export class MessageListComponent implements AfterViewInit {
         folder = 'Spam';
         break;
     }
+
+    console.log('🔍 MessageList - Normalized folder name:', folder);
+
     this.pageIndex = 0;
     this.dataSource.data = [];
     // Reset infinite scroll state
     this.resetInfiniteScroll();
-    this.utilsApiService.getMessageCount(folder).subscribe((response: any) => {
-      this.length = Number(response);
-      // console.log('🔍 MessageList - After send: Message count for folder:', folder, 'is:', this.length);
-      let startMsgNumber = this.length - this.pageSize + 1;
-      let lastMsgNumber = this.length;
-      if (lastMsgNumber < this.pageSize) {
-        lastMsgNumber = this.length;
-        startMsgNumber = 1;
-      }
-      this.messageListApiService
-        .listMessages({
+
+    console.log('🔍 MessageList - Calling getMessageCount for folder:', folder);
+    this.utilsApiService.getMessageCount(folder).subscribe({
+      next: (response: any) => {
+        this.length = Number(response);
+        console.log('🔍 MessageList - getMessageCount response:', response);
+        console.log(
+          '🔍 MessageList - Message count for folder:',
+          folder,
+          'is:',
+          this.length
+        );
+
+        let startMsgNumber = this.length - this.pageSize + 1;
+        let lastMsgNumber = this.length;
+        if (lastMsgNumber < this.pageSize) {
+          lastMsgNumber = this.length;
+          startMsgNumber = 1;
+        }
+
+        console.log('🔍 MessageList - Calling listMessages with:', {
           startMsgNumber: startMsgNumber,
           lastMsgNumber: lastMsgNumber,
           folder: folder,
-        })
-        .subscribe((messageListResponse) => {
-          // console.log('🔍 MessageList - After send: Received', messageListResponse.messageList, 'messages for folder:', folder);
-          // console.log('🔍 MessageList - After send: Received', messageListResponse.messageList.length, 'messages for folder:', folder);
-          if (
-            messageListResponse &&
-            Array.isArray(messageListResponse.messageList)
-          ) {
-            this.dataSource.data = messageListResponse.messageList.map(
-              (msg) => ({
-                id: Number(msg.messageNumber),
-                from: msg.from,
-                to: msg.to,
-                name: msg.subject,
-                receivedDate: msg.receivedDate,
-                attachment: msg.attachment != null && msg.attachment.length > 0,
-                size: msg.size,
-                status: msg.status,
-                starred: false, // default to not starred
-              })
-            );
-            // Re-enable infinite scroll
-            if (this.infiniteScroll) {
-              this.infiniteScroll.disabled = false;
-            }
-          } else {
-            this.dataSource.data = [];
-            this.showErrorToast(
-              'Failed to load messages. Please try again later.'
-            );
-          }
         });
+
+        this.messageListApiService
+          .listMessages({
+            startMsgNumber: startMsgNumber,
+            lastMsgNumber: lastMsgNumber,
+            folder: folder,
+          })
+          .subscribe({
+            next: (messageListResponse) => {
+              console.log(
+                '🔍 MessageList - listMessages response:',
+                messageListResponse
+              );
+              console.log(
+                '🔍 MessageList - Message list length:',
+                messageListResponse?.messageList?.length
+              );
+
+              if (
+                messageListResponse &&
+                Array.isArray(messageListResponse.messageList)
+              ) {
+                this.dataSource.data = messageListResponse.messageList.map(
+                  (msg) => ({
+                    id: Number(msg.messageNumber),
+                    from: msg.from,
+                    to: msg.to,
+                    name: msg.subject,
+                    receivedDate: msg.receivedDate,
+                    attachment:
+                      msg.attachment != null && msg.attachment.length > 0,
+                    size: msg.size,
+                    status: msg.status,
+                    starred: false, // default to not starred
+                  })
+                );
+                console.log(
+                  '🔍 MessageList - Updated dataSource with',
+                  this.dataSource.data.length,
+                  'messages'
+                );
+                // Re-enable infinite scroll
+                if (this.infiniteScroll) {
+                  this.infiniteScroll.disabled = false;
+                }
+              } else {
+                this.dataSource.data = [];
+                console.log(
+                  '🔍 MessageList - No messages found or invalid response'
+                );
+                this.showErrorToast(
+                  'Failed to load messages. Please try again later.'
+                );
+              }
+            },
+            error: (error) => {
+              console.error('🔍 MessageList - listMessages error:', error);
+              this.dataSource.data = [];
+              this.showErrorToast(
+                'Failed to load messages. Please try again later.'
+              );
+            },
+          });
+      },
+      error: (error) => {
+        console.error('🔍 MessageList - getMessageCount error:', error);
+        this.dataSource.data = [];
+        this.showErrorToast('Failed to load messages. Please try again later.');
+      },
     });
   }
 
@@ -731,6 +822,10 @@ export class MessageListComponent implements AfterViewInit {
       if (!folder || folder.trim() === '') {
         folder = 'INBOX';
       }
+      console.log(
+        '🔍 MessageList - ngOnInit - Route change detected, folder:',
+        folder
+      );
       this.currentFolder = folder;
       // Reset infinite scroll state when folder changes
       this.resetInfiniteScroll();
@@ -743,7 +838,14 @@ export class MessageListComponent implements AfterViewInit {
     this.currentMsgId = 0;
   }
 
+  public onMessageSent(): void {
+    console.log('🔍 MessageList - onMessageSent called');
+    // Do nothing - let the navigation handle the refresh
+    // This prevents duplicate API calls when sending messages
+  }
+
   public onNavigateToSent(): void {
+    console.log('🔍 MessageList - onNavigateToSent called');
     this.router.navigate(['/app'], { queryParams: { folder: 'SENT' } });
     this.selected.setValue(0);
     this.currentMsgId = 0;
@@ -752,6 +854,23 @@ export class MessageListComponent implements AfterViewInit {
     this.exitComposeMode.emit();
     this.activeMessageSubject.emit(null);
     this.composeModeChange.emit(false);
+
+    // Force refresh for SENT folder since route subscription might not trigger
+    setTimeout(() => {
+      console.log(
+        '🔍 MessageList - onNavigateToSent - Force refresh for SENT folder'
+      );
+      this.currentFolder = 'SENT';
+      this.refreshMessagesAfterSend();
+    }, 100);
+  }
+
+  public onMailMessageModeChange(mode: {
+    isComposing: boolean;
+    isReplyMode: boolean;
+    isForwardMode: boolean;
+  }): void {
+    this.mailMessageModeChange.emit(mode);
   }
 
   private async showErrorToast(message: string) {

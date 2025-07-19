@@ -36,7 +36,7 @@ import { MailMessageSendRequest } from '../sendService/new-message-api-request';
 import { FileUploadComponent } from '../file-upload/file-upload.component';
 import { FileDisplayComponent } from '../file-display/file-display.component';
 import { MatIconModule } from '@angular/material/icon';
-import { FilePreviewComponent } from '../file-preview/image-preview.component';
+import { FilePreviewComponent } from '../file-preview/file-preview.component';
 import {
   MessageContentResponse,
   FileItem,
@@ -46,7 +46,7 @@ import { Subscription } from 'rxjs';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Browser } from '@capacitor/browser';
-import { InAppBrowser } from '@capacitor/inappbrowser';
+import { InAppBrowser } from '@capgo/inappbrowser';
 // import { FileOpener } from '@ionic-native/file-opener/ngx';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { environment } from '../../environments/environment';
@@ -93,6 +93,11 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
   @Output() newClicked = new EventEmitter<void>();
   @Output() messageSent = new EventEmitter<void>();
   @Output() navigateToSent = new EventEmitter<void>();
+  @Output() modeChange = new EventEmitter<{
+    isComposing: boolean;
+    isReplyMode: boolean;
+    isForwardMode: boolean;
+  }>();
 
   closeTab() {
     this.removeTab.emit();
@@ -114,7 +119,10 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
   isReplyMode = false;
   isForwardMode = false;
   showCcBcc = false;
-  private saveSub?: Subscription;
+  showForwardedContent = false;
+  showThreeDotsButton = true; // Control visibility of three dots button
+  originalMessageContent: string = '';
+  newMessageContent: string = ''; // Store new content separately
   mergedAttachments: MergedAttachment[] = [];
   cleanedBody: string = '';
   safeCleanedBody: SafeHtml = '';
@@ -162,16 +170,27 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.editor = new Editor();
+    // Only create editor for desktop (mobile uses textarea)
+    if (!this.platform.ANDROID && !this.platform.IOS) {
+      this.editor = new Editor();
+    }
     this.isMobile = this.platform.ANDROID || this.platform.IOS;
-    this.saveSub = this.messageActionService.save$.subscribe(() =>
-      this.saveMessage()
-    );
+    // Removed the save subscription since archive is now handled by LayoutComponent
   }
 
   ngOnDestroy(): void {
-    this.editor.destroy();
-    this.saveSub?.unsubscribe();
+    if (this.editor) {
+      this.editor.destroy();
+    }
+    // Removed saveSub unsubscribe since it's no longer used
+  }
+
+  private emitModeChange(): void {
+    this.modeChange.emit({
+      isComposing: this.hasSubmitButton,
+      isReplyMode: this.isReplyMode,
+      isForwardMode: this.isForwardMode,
+    });
   }
 
   fetchMessage(): void {
@@ -187,12 +206,14 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
       this.hasBody = true;
       this.hasSubmitButton = true;
       this.showSendFields = true;
+      this.emitModeChange();
     } else {
       this.hasTo = false;
       this.hasSubject = false;
       this.hasBody = false;
       this.hasSubmitButton = false;
       this.showSendFields = false;
+      this.emitModeChange();
 
       switch (this.folder) {
         case 'SENT':
@@ -372,15 +393,82 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
       };
 
       const mimeType = getMimeType(fileName);
-      const blob = new Blob([response as Blob], { type: mimeType });
-      const blobUrl = window.URL.createObjectURL(blob);
-      console.log('Created blob URL:', blobUrl, 'for file:', fileName);
+
+      if (Capacitor.isNativePlatform()) {
+        // For mobile: Save to filesystem first, then use local path
+        await this.previewFileMobile(response as Blob, fileName, mimeType);
+      } else {
+        // For web: Use blob URL (works fine on desktop)
+        const blob = new Blob([response as Blob], { type: mimeType });
+        const blobUrl = window.URL.createObjectURL(blob);
+        console.log('Created blob URL:', blobUrl, 'for file:', fileName);
+
+        const modal = await this.modalController.create({
+          component: FilePreviewComponent,
+          componentProps: {
+            fileUrl: blobUrl,
+            fileName: fileName,
+          },
+          cssClass: 'file-preview-modal',
+          backdropDismiss: true,
+          showBackdrop: true,
+        });
+
+        await modal.present();
+        console.log('Modal presented for file:', fileName);
+
+        // Clean up blob URL when modal is dismissed
+        modal.onDidDismiss().then(() => {
+          console.log('Modal dismissed, cleaning up blob URL for:', fileName);
+          window.URL.revokeObjectURL(blobUrl);
+        });
+      }
+    } catch (error) {
+      console.error('Error previewing file:', error);
+      this.showToast('Error previewing file', 'danger');
+    }
+  }
+
+  // **NEW: Preview file on mobile using filesystem**
+  private async previewFileMobile(
+    blob: Blob,
+    fileName: string,
+    mimeType: string
+  ): Promise<void> {
+    try {
+      // Convert blob to base64
+      const base64Data = await this.blobToBase64(blob);
+      const safePath = `preview_${Date.now()}_${fileName.replace(
+        /[^a-zA-Z0-9.\-_]/g,
+        '_'
+      )}`;
+
+      // Save to cache directory for preview
+      const result = await Filesystem.writeFile({
+        path: safePath,
+        data: base64Data,
+        directory: Directory.Cache,
+        recursive: true,
+      });
+
+      console.log('File saved to cache for preview:', result.uri);
+
+      // Create a file:// URL for the local file
+      // Note: On Android, the URI might already include file:// prefix
+      let localFileUrl = result.uri;
+      if (
+        !localFileUrl.startsWith('file://') &&
+        !localFileUrl.startsWith('content://')
+      ) {
+        localFileUrl = `file://${result.uri}`;
+      }
 
       const modal = await this.modalController.create({
         component: FilePreviewComponent,
         componentProps: {
-          fileUrl: blobUrl,
+          fileUrl: localFileUrl,
           fileName: fileName,
+          isLocalFile: true, // Flag to indicate this is a local file
         },
         cssClass: 'file-preview-modal',
         backdropDismiss: true,
@@ -388,55 +476,176 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
       });
 
       await modal.present();
-      console.log('Modal presented for file:', fileName);
+      console.log('Modal presented for local file:', fileName);
 
-      // Clean up blob URL when modal is dismissed
-      modal.onDidDismiss().then(() => {
-        console.log('Modal dismissed, cleaning up blob URL for:', fileName);
-        window.URL.revokeObjectURL(blobUrl);
+      // Clean up the temporary file when modal is dismissed
+      modal.onDidDismiss().then(async () => {
+        try {
+          await Filesystem.deleteFile({
+            path: safePath,
+            directory: Directory.Cache,
+          });
+          console.log('Temporary preview file cleaned up:', safePath);
+        } catch (cleanupError) {
+          console.warn('Could not clean up temporary file:', cleanupError);
+        }
       });
     } catch (error) {
-      console.error('Error previewing file:', error);
-      this.showToast('Error previewing file', 'danger');
+      console.error('Error previewing file on mobile:', error);
+
+      // Fallback: Try with blob URL if filesystem fails
+      try {
+        console.log('Falling back to blob URL approach');
+        const blobUrl = window.URL.createObjectURL(blob);
+
+        const modal = await this.modalController.create({
+          component: FilePreviewComponent,
+          componentProps: {
+            fileUrl: blobUrl,
+            fileName: fileName,
+            isLocalFile: false,
+          },
+          cssClass: 'file-preview-modal',
+          backdropDismiss: true,
+          showBackdrop: true,
+        });
+
+        await modal.present();
+        console.log('Modal presented with blob URL fallback:', fileName);
+
+        // Clean up blob URL when modal is dismissed
+        modal.onDidDismiss().then(() => {
+          window.URL.revokeObjectURL(blobUrl);
+        });
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+        this.showToast('Error previewing file', 'danger');
+      }
     }
   }
 
   // **NEW: Preview file in browser**
   private async previewFileInBrowser(fileName: string): Promise<void> {
     try {
-      const baseUrl = environment.apiUrl;
-      const attachmentUrl = `${baseUrl}attachment?folder=${
-        this.folder
-      }&messageNumber=${
-        this.messageContent?.messageNumber
-      }&filename=${fileName}&userName=${this.getUserName()}`;
-
       if (Capacitor.isNativePlatform()) {
-        // Use Browser for mobile
-        await Browser.open({
-          url: attachmentUrl,
-        });
+        // For mobile: Save to filesystem first, then open with browser
+        await this.previewFileInBrowserMobile(fileName);
       } else {
-        // Use blob URL for web browsers
-        const response = await this.messageDataApiService
-          .attachment(
-            this.folder,
-            Number(this.messageContent?.messageNumber),
-            fileName,
-            this.getUserName()
-          )
-          .toPromise();
+        // For web: Use direct API URL or blob URL
+        const baseUrl = environment.apiUrl;
+        const attachmentUrl = `${baseUrl}attachment?folder=${
+          this.folder
+        }&messageNumber=${
+          this.messageContent?.messageNumber
+        }&filename=${fileName}&userName=${this.getUserName()}`;
 
-        const blob = new Blob([response as Blob]);
-        const blobUrl = window.URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank');
+        // Try direct URL first, fallback to blob URL
+        try {
+          window.open(attachmentUrl, '_blank');
+        } catch (error) {
+          // Fallback to blob URL
+          const response = await this.messageDataApiService
+            .attachment(
+              this.folder,
+              Number(this.messageContent?.messageNumber),
+              fileName,
+              this.getUserName()
+            )
+            .toPromise();
 
-        // Clean up after 30 seconds
-        setTimeout(() => window.URL.revokeObjectURL(blobUrl), 30000);
+          const blob = new Blob([response as Blob]);
+          const blobUrl = window.URL.createObjectURL(blob);
+          window.open(blobUrl, '_blank');
+
+          // Clean up after 30 seconds
+          setTimeout(() => window.URL.revokeObjectURL(blobUrl), 30000);
+        }
       }
     } catch (error) {
       console.error('Error previewing file in browser:', error);
       this.showToast('Error previewing file', 'danger');
+    }
+  }
+
+  // **NEW: Preview file in browser on mobile using filesystem**
+  private async previewFileInBrowserMobile(fileName: string): Promise<void> {
+    try {
+      const response = await this.messageDataApiService
+        .attachment(
+          this.folder,
+          Number(this.messageContent?.messageNumber),
+          fileName,
+          this.getUserName()
+        )
+        .toPromise();
+
+      // Convert blob to base64
+      const base64Data = await this.blobToBase64(response as Blob);
+      const safePath = `browser_${Date.now()}_${fileName.replace(
+        /[^a-zA-Z0-9.\-_]/g,
+        '_'
+      )}`;
+
+      // Save to cache directory
+      const result = await Filesystem.writeFile({
+        path: safePath,
+        data: base64Data,
+        directory: Directory.Cache,
+        recursive: true,
+      });
+
+      console.log('File saved to cache for browser:', result.uri);
+
+      // Create a file:// URL for the local file
+      // Note: On Android, the URI might already include file:// prefix
+      let localFileUrl = result.uri;
+      if (
+        !localFileUrl.startsWith('file://') &&
+        !localFileUrl.startsWith('content://')
+      ) {
+        localFileUrl = `file://${result.uri}`;
+      }
+
+      // Open with Capacitor Browser
+      await Browser.open({
+        url: localFileUrl,
+      });
+
+      // Clean up the temporary file after a delay
+      setTimeout(async () => {
+        try {
+          await Filesystem.deleteFile({
+            path: safePath,
+            directory: Directory.Cache,
+          });
+          console.log('Temporary browser file cleaned up:', safePath);
+        } catch (cleanupError) {
+          console.warn(
+            'Could not clean up temporary browser file:',
+            cleanupError
+          );
+        }
+      }, 60000); // Clean up after 1 minute
+    } catch (error) {
+      console.error('Error previewing file in browser on mobile:', error);
+
+      // Fallback: Try direct API URL
+      try {
+        console.log('Falling back to direct API URL approach');
+        const baseUrl = environment.apiUrl;
+        const attachmentUrl = `${baseUrl}attachment?folder=${
+          this.folder
+        }&messageNumber=${
+          this.messageContent?.messageNumber
+        }&filename=${fileName}&userName=${this.getUserName()}`;
+
+        await Browser.open({
+          url: attachmentUrl,
+        });
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+        this.showToast('Error previewing file', 'danger');
+      }
     }
   }
 
@@ -708,16 +917,60 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   onSubmit(): void {
+    // Store the current mode before resetting it
+    const wasReplyMode = this.isReplyMode;
+    const wasForwardMode = this.isForwardMode;
+
     this.isReplyMode = false;
     this.isForwardMode = false;
+    this.showThreeDotsButton = true; // Reset for next use
+    this.emitModeChange();
     let editorValue = this.addressForm.get('body')?.value;
     let htmlBody = '';
-    if (typeof editorValue === 'string') {
-      htmlBody = editorValue;
-    } else if (editorValue && this.editor && this.editor.schema) {
-      htmlBody = toHTML(editorValue, this.editor.schema);
+
+    // If this was a reply or forward, ALWAYS include the original content for the recipient
+    if ((wasReplyMode || wasForwardMode) && this.originalMessageContent) {
+      // Always include both new content and original content for the recipient
+      let newContent = '';
+      if (this.isMobile) {
+        // For mobile: textarea returns plain text, convert to HTML
+        if (typeof editorValue === 'string') {
+          newContent = editorValue.replace(/\n/g, '<br>');
+        }
+      } else {
+        // For desktop: rich text editor
+        if (typeof editorValue === 'string') {
+          newContent = editorValue;
+        } else if (editorValue && this.editor && this.editor.schema) {
+          newContent = toHTML(editorValue, this.editor.schema);
+        }
+      }
+
+      // Combine new content with original message content
+      htmlBody =
+        newContent +
+        (newContent ? '<br><br>' : '') +
+        this.originalMessageContent;
     } else {
-      htmlBody = '';
+      // Normal compose mode
+      if (this.isMobile) {
+        // For mobile: textarea returns plain text, convert to HTML
+        if (typeof editorValue === 'string') {
+          // Convert plain text to HTML with line breaks
+          htmlBody = editorValue.replace(/\n/g, '<br>');
+        } else {
+          htmlBody = '';
+        }
+      } else {
+        // For desktop: rich text editor
+        if (typeof editorValue === 'string') {
+          htmlBody = editorValue;
+        } else if (editorValue && this.editor && this.editor.schema) {
+          htmlBody = toHTML(editorValue, this.editor.schema);
+        } else {
+          htmlBody = '';
+        }
+      }
     }
 
     const attachments = this.files.map((file) => ({
@@ -741,11 +994,26 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
       attachment: attachments,
     };
 
-    this.sendApiService.sendMail(sendRequest).subscribe((response) => {
-      this.saveMessage();
-      this.closeTab();
-      this.messageSent.emit();
-      this.navigateToSentMessages();
+    console.log(
+      '🔍 MailMessage - Sending request:',
+      JSON.stringify(sendRequest, null, 2)
+    );
+    console.log('🔍 MailMessage - Current folder:', this.folder);
+    console.log('🔍 MailMessage - Current user:', this.getUserName());
+
+    this.sendApiService.sendMail(sendRequest).subscribe({
+      next: (response) => {
+        console.log('🔍 MailMessage - sendMail response received:', response);
+        console.log('🔍 MailMessage - Response type:', typeof response);
+        console.log('🔍 MailMessage - Response length:', response?.length);
+        this.saveMessage();
+        this.closeTab();
+        this.messageSent.emit();
+        this.navigateToSentMessages();
+      },
+      error: (error) => {
+        console.error('🔍 MailMessage - sendMail error:', error);
+      },
     });
   }
 
@@ -756,19 +1024,44 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 
     this.isReplyMode = true;
     this.isForwardMode = false;
-    let to: string = this.addressForm.get('from')?.value as string;
-    let from: string = this.addressForm.get('to')?.value as string;
+    this.showForwardedContent = false; // Start with hidden content
+    this.showThreeDotsButton = true; // Show three dots button initially
+    this.emitModeChange();
+
+    let to: string;
+    let from: string;
     let subject: string = ('Re: ' +
       this.addressForm.get('subject')?.value) as string;
-    let body: string = (' -----Original Message-----' +
-      ' From: ' +
+
+    // Check if we're in Sent folder - adjust From/To logic accordingly
+    if (this.folder === 'SENT' || this.folder === 'Sent') {
+      // In Sent folder: current "from" is the user, "to" is the recipient
+      // For reply: send to the original recipient
+      to = this.addressForm.get('to')?.value as string;
+      from = this.addressForm.get('from')?.value as string;
+    } else {
+      // In other folders (INBOX, etc.): current "from" is sender, "to" is the user
+      // For reply: send to the original sender
+      to = this.addressForm.get('from')?.value as string;
+      from = this.addressForm.get('to')?.value as string;
+    }
+
+    // Create the original message content that can be toggled
+    const originalBody = this.formatOriginalContent(
+      this.addressForm.get('body')?.value || ''
+    );
+    this.originalMessageContent = (' -----Replied Message-----\n' +
+      'From: ' +
       this.addressForm.get('from')?.value +
-      ' To: ' +
+      '\nTo: ' +
       this.addressForm.get('to')?.value +
-      ' subject: ' +
+      '\nsubject: ' +
       this.addressForm.get('subject')?.value +
-      ' ' +
-      this.addressForm.get('body')?.value) as string;
+      '\n' +
+      originalBody) as string;
+
+    // Start with empty body, original content will be shown/hidden via toggle
+    let body: string = '';
 
     this.addressForm.setValue({
       to: to,
@@ -796,18 +1089,39 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
 
     this.isForwardMode = true;
     this.isReplyMode = false;
-    let from: string = this.addressForm.get('to')?.value as string;
+    this.showForwardedContent = false; // Start with hidden content
+    this.showThreeDotsButton = true; // Show three dots button initially
+    this.emitModeChange();
+
+    let from: string;
     let subject: string = ('Fwd: ' +
       this.addressForm.get('subject')?.value) as string;
-    let body: string = (' -----forwarded Message-----' +
-      ' From: ' +
+
+    // Check if we're in Sent folder - adjust From logic accordingly
+    if (this.folder === 'SENT' || this.folder === 'Sent') {
+      // In Sent folder: current "from" is the user
+      from = this.addressForm.get('from')?.value as string;
+    } else {
+      // In other folders (INBOX, etc.): current "to" is the user
+      from = this.addressForm.get('to')?.value as string;
+    }
+
+    // Create the original message content that can be toggled
+    const originalBody = this.formatOriginalContent(
+      this.addressForm.get('body')?.value || ''
+    );
+    this.originalMessageContent = (' -----forwarded Message-----\n' +
+      'From: ' +
       this.addressForm.get('from')?.value +
-      ' To: ' +
+      '\nTo: ' +
       this.addressForm.get('to')?.value +
-      ' subject: ' +
+      '\nsubject: ' +
       this.addressForm.get('subject')?.value +
-      ' ' +
-      this.addressForm.get('body')?.value) as string;
+      '\n' +
+      originalBody) as string;
+
+    // Start with empty body, original content will be shown/hidden via toggle
+    let body: string = '';
 
     this.addressForm.setValue({
       to: '',
@@ -848,12 +1162,16 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   attachFile() {
+    console.log('Attach file button clicked');
     this.showUploadFile = true;
+    console.log('showUploadFile set to:', this.showUploadFile);
   }
 
   uploadedFile(file: { fileName: string; contentType: string; size: number }) {
+    console.log('File uploaded:', file);
     this.files.push(file);
     this.showUploadFile = false;
+    console.log('Files array:', this.files);
   }
 
   newMessage() {
@@ -879,7 +1197,79 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
     this.showCcBcc = !this.showCcBcc;
   }
 
+  toggleForwardedContent() {
+    this.showForwardedContent = !this.showForwardedContent;
+
+    // Hide the three dots button after it's clicked
+    this.showThreeDotsButton = false;
+
+    // Update the form body content based on toggle state (UI only - doesn't affect what gets sent)
+    if (this.showForwardedContent) {
+      // Show new content + original message content with proper line breaks (UI preview only)
+      const formattedOriginalContent = this.formatOriginalContent(
+        this.originalMessageContent
+      );
+      const combinedContent =
+        this.newMessageContent +
+        (this.newMessageContent && formattedOriginalContent ? '\n\n' : '') +
+        formattedOriginalContent;
+      this.addressForm.patchValue({
+        body: combinedContent,
+      });
+    } else {
+      // Hide the original message content (show only new content in UI)
+      this.addressForm.patchValue({
+        body: this.newMessageContent,
+      });
+    }
+  }
+
+  onBodyContentChange() {
+    // Track new content when user types in reply/forward mode (separate from original content)
+    if (this.isReplyMode || this.isForwardMode) {
+      const currentBody = this.addressForm.get('body')?.value || '';
+
+      if (this.showForwardedContent) {
+        // If showing forwarded content, extract only the new part (original content will be added separately when sending)
+        const formattedOriginalContent = this.formatOriginalContent(
+          this.originalMessageContent
+        );
+        if (currentBody.includes(formattedOriginalContent)) {
+          // Remove the original content to get only new content
+          this.newMessageContent = currentBody
+            .replace(formattedOriginalContent, '')
+            .trim();
+        } else {
+          this.newMessageContent = currentBody;
+        }
+      } else {
+        // If not showing forwarded content, all content is new (original content will be added separately when sending)
+        this.newMessageContent = currentBody;
+      }
+    }
+  }
+
+  private formatOriginalContent(content: string): string {
+    if (!content) return '';
+
+    // Replace HTML <br> tags with actual line breaks
+    let formatted = content.replace(/<br\s*\/?>/gi, '\n');
+
+    // Replace other common HTML entities
+    formatted = formatted.replace(/&nbsp;/g, ' ');
+    formatted = formatted.replace(/&amp;/g, '&');
+    formatted = formatted.replace(/&lt;/g, '<');
+    formatted = formatted.replace(/&gt;/g, '>');
+    formatted = formatted.replace(/&quot;/g, '"');
+
+    // Remove any remaining HTML tags
+    formatted = formatted.replace(/<[^>]*>/g, '');
+
+    return formatted;
+  }
+
   private navigateToSentMessages(): void {
+    console.log('🔍 MailMessage - navigateToSentMessages called');
     this.navigateToSent.emit();
     this.router.navigate(['/app'], { queryParams: { folder: 'SENT' } });
   }

@@ -35,7 +35,7 @@
 		</section>
         } @else {
           <!-- Message view for desktop tabs -->
-          <app-mail-message (removeTab)="removeTab(index)" (newClicked)="addNewTab('New Message')" (messageSent)="refreshMessagesAfterSend()" (navigateToSent)="onNavigateToSent()" [messageNumber]="currentMsgId" [folder]="currentFolder"></app-mail-message>
+          <app-mail-message (removeTab)="removeTab(index)" (newClicked)="addNewTab('New Message')" (messageSent)="onMessageSent()" (navigateToSent)="onNavigateToSent()" (modeChange)="onMailMessageModeChange($event)" [messageNumber]="currentMsgId" [folder]="currentFolder"></app-mail-message>
         }
     </mat-tab>
   }            
@@ -52,7 +52,7 @@
     <ion-list>
       <ion-item-sliding #slidingItem *ngFor="let message of dataSource.data">
         <ion-item-options side="end">
-          <ion-item-option class="archive-option" (click)="onArchive(message, slidingItem)"><ion-icon slot="icon-only" name="archive"></ion-icon></ion-item-option>
+          <ion-item-option *ngIf="currentFolder !== 'ARCHIVE'" class="archive-option" (click)="onArchive(message, slidingItem)"><ion-icon slot="icon-only" name="archive"></ion-icon></ion-item-option>
           <ion-item-option class="delete-option" (click)="onDelete(message, slidingItem)"><ion-icon slot="icon-only" name="trash"></ion-icon></ion-item-option>
         </ion-item-options>
           <ion-item (click)="onItemClick(message)" (press)="onLongPress(message)" (contextmenu)="$event.preventDefault()" class="message-item" [class.unread]="message.status === 'Unread'" [class.selected]="isSelected(message)" lines="none" style="touch-action: pan-y;">
@@ -90,6 +90,6 @@
 
   <!-- Show SINGLE message on mobile -->
   <div *ngIf="isMessageOpen()">
-    <app-mail-message class="message-view" (newClicked)="addNewTab('New Message')" (messageSent)="refreshMessagesAfterSend()" (navigateToSent)="onNavigateToSent()" [messageNumber]="currentMsgId" [folder]="currentFolder"></app-mail-message>
+    <app-mail-message class="message-view" (newClicked)="addNewTab('New Message')" (messageSent)="onMessageSent()" (navigateToSent)="onNavigateToSent()" (modeChange)="onMailMessageModeChange($event)" [messageNumber]="currentMsgId" [folder]="currentFolder"></app-mail-message>
   </div>
 </div>

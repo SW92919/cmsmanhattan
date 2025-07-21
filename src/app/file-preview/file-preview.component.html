@@ -40,8 +40,25 @@
 
   <!-- PDF Preview -->
   <div *ngIf="!isLoading && isPdfFile" class="pdf-container">
-    <!-- PDF Options -->
-    <div class="pdf-fallback">
+    <!-- In-App PDF Viewer -->
+    <div *ngIf="pdfViewerUrl" class="pdf-viewer">
+      <iframe
+        [src]="pdfViewerUrl"
+        class="pdf-iframe"
+        frameborder="0"
+        (load)="onFileLoad()"
+        (error)="onPdfError()"
+      ></iframe>
+      <div class="pdf-viewer-controls">
+        <ion-button fill="clear" (click)="closePdfViewer()" color="medium">
+          <ion-icon name="close-outline" slot="start"></ion-icon>
+          Close Viewer
+        </ion-button>
+      </div>
+    </div>
+    
+    <!-- PDF Options (when not viewing) -->
+    <div *ngIf="!pdfViewerUrl" class="pdf-fallback">
       <div class="pdf-info">
         <ion-icon name="document-text-outline" class="pdf-icon"></ion-icon>
         <h3>{{ fileName }}</h3>
@@ -53,23 +70,23 @@
             color="primary"
           >
             <ion-icon name="document-text-outline" slot="start"></ion-icon>
-            {{ isNative ? 'Open in App' : 'Open in PDF Viewer' }}
-          </ion-button>
-          <ion-button
-            (click)="openInBrowser()"
-            fill="outline"
-            color="secondary"
-          >
-            <ion-icon name="open" slot="start"></ion-icon>
-            {{ isNative ? 'Open in Browser' : 'Open in New Tab' }}
+            {{ isNative ? 'Open in PDF Viewer' : 'Open in PDF Viewer' }}
           </ion-button>
           <ion-button
             (click)="downloadFile()"
             fill="outline"
-            color="tertiary"
+            color="secondary"
           >
             <ion-icon name="download-outline" slot="start"></ion-icon>
             Download PDF
+          </ion-button>
+          <ion-button
+            (click)="openInBrowser()"
+            fill="outline"
+            color="tertiary"
+          >
+            <ion-icon name="open" slot="start"></ion-icon>
+            {{ isNative ? 'Open in Browser' : 'Open in New Tab' }}
           </ion-button>
         </div>
       </div>
@@ -121,6 +138,29 @@
     </div>
   </div>
 
+  <!-- Document File Preview -->
+  <div *ngIf="!isLoading && isDocumentFile" class="document-container">
+    <div class="document-info">
+      <ion-icon [name]="getFileIcon()" class="document-icon"></ion-icon>
+      <h3>{{ fileName }}</h3>
+      <p>{{ getFileTypeDescription() }}</p>
+      <div class="action-buttons">
+        <ion-button (click)="openDocumentInViewer()" fill="solid" color="primary">
+          <ion-icon name="document-text-outline" slot="start"></ion-icon>
+          {{ isNative ? 'Open Document' : 'View Document' }}
+        </ion-button>
+        <ion-button (click)="downloadFile()" fill="outline" color="secondary">
+          <ion-icon name="download-outline" slot="start"></ion-icon>
+          Download File
+        </ion-button>
+        <ion-button (click)="openInBrowser()" fill="outline" color="tertiary">
+          <ion-icon name="desktop-outline" slot="start"></ion-icon>
+          {{ isNative ? 'Open Online' : 'Open with App' }}
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
   <!-- Generic File Preview -->
   <div
     *ngIf="
@@ -129,7 +169,8 @@
       !isPdfFile &&
       !isTextFile &&
       !isVideoFile &&
-      !isAudioFile
+      !isAudioFile &&
+      !isDocumentFile
     "
     class="generic-container"
   >

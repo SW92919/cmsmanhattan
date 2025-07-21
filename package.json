@@ -32,6 +32,7 @@
     "@tiptap/core": "^2.22.3",
     "hammerjs": "^2.0.8",
     "ionicons": "^8.0.9",
+    "mammoth": "^1.9.1",
     "ngx-editor": "^17.0.2",
     "rxjs": "^7.8.1",
     "tslib": "^2.3.0",

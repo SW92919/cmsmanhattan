@@ -13,6 +13,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import { PDFViewer } from '@nadlowebagentur/capacitor-pdf-viewer';
 import { addIcons } from 'ionicons';
 import {
@@ -50,6 +51,13 @@ export class FilePreviewComponent implements OnInit, OnDestroy {
   @Input() fileName: string = '';
   @Input() isLocalFile: boolean = false; // Flag to indicate if this is a local file
   @Input() filePath: string = ''; // Path used to save the file in filesystem
+  @Input() backendParams?: {
+    folder: string;
+    messageNumber: number;
+    filename: string;
+    userName: string;
+    apiUrl: string;
+  }; // Backend parameters for direct URL construction
   @Output() closePreview = new EventEmitter<void>();
 
   // Image zoom/pan properties
@@ -66,6 +74,7 @@ export class FilePreviewComponent implements OnInit, OnDestroy {
   isTextFile: boolean = false;
   isVideoFile: boolean = false;
   isAudioFile: boolean = false;
+  isDocumentFile: boolean = false; // For .doc, .docx, .xls, .xlsx, etc.
 
   // State
   isLoading: boolean = true;
@@ -287,9 +296,21 @@ export class FilePreviewComponent implements OnInit, OnDestroy {
 
   private setupPdfViewer() {
     try {
-      // For PDFs, skip iframe attempt and go straight to options
+      // For PDFs, we show options instead of direct preview
       console.log('Setting up PDF viewer options for:', this.fileName);
+
+      // Set loading to false immediately since we're showing options
       this.isLoading = false;
+
+      // Log platform info for debugging
+      console.log(
+        'PDF setup - isNative:',
+        this.isNative,
+        'isLocalFile:',
+        this.isLocalFile,
+        'filePath:',
+        this.filePath
+      );
     } catch (error) {
       console.error('Error setting up PDF viewer:', error);
       this.pdfError = true;
@@ -357,6 +378,7 @@ export class FilePreviewComponent implements OnInit, OnDestroy {
     this.isVideoFile = false;
     this.isAudioFile = false;
     this.isTextFile = false;
+    this.isDocumentFile = false;
 
     // Check file types using switch statement
     switch (extension) {
@@ -413,6 +435,19 @@ export class FilePreviewComponent implements OnInit, OnDestroy {
       case '.amr':
         this.isAudioFile = true;
         break;
+      // Document files (Office, etc.)
+      case '.doc':
+      case '.docx':
+      case '.odt':
+      case '.xls':
+      case '.xlsx':
+      case '.ods':
+      case '.ppt':
+      case '.pptx':
+      case '.odp':
+        this.isDocumentFile = true;
+        break;
+
       // Text files
       case '.txt':
       case '.md':
@@ -688,19 +723,10 @@ export class FilePreviewComponent implements OnInit, OnDestroy {
 
       // For local files on mobile, we need to handle differently
       if (this.isLocalFile && this.isNative) {
-        // Use the blob URL if available, otherwise use original URL
-        const urlToUse = this.cleanupBlobUrl || this.fileUrl;
-        const response = await fetch(urlToUse);
-        const text = await response.text();
-        // Limit text content to prevent memory issues
-        this.textContent =
-          text.length > 10000
-            ? text.substring(0, 10000) + '\n\n... (content truncated)'
-            : text;
-        this.isLoading = false;
-        this.hasError = false;
-        console.log('Text content loaded successfully for:', this.fileName);
+        // Read directly from filesystem for mobile
+        await this.loadTextFromFilesystem();
       } else {
+        // For web or blob URLs, use fetch
         const response = await fetch(this.fileUrl);
         const text = await response.text();
         // Limit text content to prevent memory issues
@@ -715,6 +741,42 @@ export class FilePreviewComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Error reading text file:', error);
       this.textContent = 'Unable to read file content.';
+      this.isLoading = false;
+      this.hasError = true;
+    }
+  }
+
+  private async loadTextFromFilesystem() {
+    try {
+      console.log('Loading text from filesystem for:', this.fileName);
+
+      // Import Filesystem here to avoid circular dependency issues
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+
+      // Read the file from cache
+      const result = await Filesystem.readFile({
+        path: this.filePath,
+        directory: Directory.Cache,
+      });
+
+      // Convert base64 to text
+      const base64Data = result.data as string;
+      const text = atob(base64Data);
+
+      // Limit text content to prevent memory issues
+      this.textContent =
+        text.length > 10000
+          ? text.substring(0, 10000) + '\n\n... (content truncated)'
+          : text;
+      this.isLoading = false;
+      this.hasError = false;
+      console.log(
+        'Text content loaded from filesystem successfully for:',
+        this.fileName
+      );
+    } catch (error) {
+      console.error('Error reading text from filesystem:', error);
+      this.textContent = 'Unable to read file content from filesystem.';
       this.isLoading = false;
       this.hasError = true;
     }
@@ -806,15 +868,28 @@ export class FilePreviewComponent implements OnInit, OnDestroy {
     this.panY = 0;
   }
 
-  downloadFile() {
-    if (this.isLocalFile) {
-      // For local files, we need to handle differently on mobile
+  async downloadFile() {
+    try {
+      console.log(
+        'Download file called for:',
+        this.fileName,
+        'isNative:',
+        this.isNative,
+        'isLocalFile:',
+        this.isLocalFile
+      );
+
       if (this.isNative) {
-        // On native platforms, the file is already saved, just show a message
-        console.log('File is already saved locally:', this.fileUrl);
-        // You could implement a share functionality here
+        // For native mobile, we need to use the Filesystem API to save to downloads
+        if (this.isLocalFile) {
+          // File is already saved locally, copy it to downloads
+          await this.copyFileToDownloads();
+        } else {
+          // Need to download the file first, then save to downloads
+          await this.downloadAndSaveToDownloads();
+        }
       } else {
-        // For web, try to download the local file
+        // For web, use the standard download method
         const a = document.createElement('a');
         a.href = this.fileUrl;
         a.download = this.fileName;
@@ -822,14 +897,106 @@ export class FilePreviewComponent implements OnInit, OnDestroy {
         a.click();
         document.body.removeChild(a);
       }
-    } else {
-      // For blob URLs, use the standard download method
-      const a = document.createElement('a');
-      a.href = this.fileUrl;
-      a.download = this.fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      // Show error message to user
+      this.showErrorToast('Failed to download file');
+    }
+  }
+
+  private async copyFileToDownloads() {
+    try {
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+
+      // Read the file from cache
+      const result = await Filesystem.readFile({
+        path: this.filePath,
+        directory: Directory.Cache,
+      });
+
+      // Save to downloads directory
+      const downloadPath = `Download/${this.fileName}`;
+      await Filesystem.writeFile({
+        path: downloadPath,
+        data: result.data,
+        directory: Directory.Documents,
+        recursive: true,
+      });
+
+      console.log('File copied to downloads:', downloadPath);
+      this.showSuccessToast('File saved to Downloads');
+    } catch (error) {
+      console.error('Error copying file to downloads:', error);
+      throw error;
+    }
+  }
+
+  private async downloadAndSaveToDownloads() {
+    try {
+      // Fetch the file data
+      const response = await fetch(this.fileUrl);
+      const blob = await response.blob();
+
+      // Convert to base64
+      const base64Data = await this.blobToBase64(blob);
+
+      // Save to downloads
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      const downloadPath = `Download/${this.fileName}`;
+
+      await Filesystem.writeFile({
+        path: downloadPath,
+        data: base64Data,
+        directory: Directory.Documents,
+        recursive: true,
+      });
+
+      console.log('File downloaded and saved to downloads:', downloadPath);
+      this.showSuccessToast('File saved to Downloads');
+    } catch (error) {
+      console.error('Error downloading and saving file:', error);
+      throw error;
+    }
+  }
+
+  private async blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  private async showSuccessToast(message: string) {
+    try {
+      const { ToastController } = await import('@ionic/angular');
+      const toastController = new ToastController();
+      const toast = await toastController.create({
+        message: message,
+        duration: 2000,
+        position: 'bottom',
+        color: 'success',
+      });
+      await toast.present();
+    } catch (error) {
+      console.log('Toast not available, using console:', message);
+    }
+  }
+
+  private async showErrorToast(message: string) {
+    try {
+      const { ToastController } = await import('@ionic/angular');
+      const toastController = new ToastController();
+      const toast = await toastController.create({
+        message: message,
+        duration: 3000,
+        position: 'bottom',
+        color: 'danger',
+      });
+      await toast.present();
+    } catch (error) {
+      console.error('Error showing toast:', message);
     }
   }
 
@@ -841,60 +1008,909 @@ export class FilePreviewComponent implements OnInit, OnDestroy {
         'URL:',
         this.fileUrl,
         'isLocalFile:',
-        this.isLocalFile
+        this.isLocalFile,
+        'isNative:',
+        this.isNative
       );
 
-      if (this.isNative || this.isMobile) {
-        // Use Capacitor Browser for mobile
-        await Browser.open({ url: this.fileUrl });
+      // Special handling for document files
+      if (this.isDocumentFile) {
+        await this.openDocumentInBrowser();
+        return;
+      }
+
+      // Special handling for PDF files
+      if (this.isPdfFile) {
+        await this.openPdfInNewTab();
+        return;
+      }
+
+      // For blob URLs, we can't open them directly in browser
+      if (this.fileUrl.startsWith('blob:')) {
+        console.log('Blob URL detected, downloading file instead');
+        await this.downloadFile();
+        this.showSuccessToast(
+          'File downloaded. Blob URLs cannot be opened directly in browser.'
+        );
+        return;
+      }
+
+      if (this.isNative) {
+        // For native mobile, we need to handle differently
+        if (this.isLocalFile) {
+          // For local files, download them first
+          await this.downloadFile();
+          this.showSuccessToast(
+            'File downloaded. You can now open it with an external app.'
+          );
+        } else {
+          // For remote URLs, try to open in browser
+          await Browser.open({ url: this.fileUrl });
+        }
       } else {
-        // Use native browser for desktop
-        window.open(this.fileUrl, '_blank');
+        // For web (desktop or mobile simulation), use standard methods
+        if (this.isLocalFile) {
+          // Local files in web - try to open directly
+          window.open(this.fileUrl, '_blank');
+        } else {
+          // Remote URLs in web - use Capacitor Browser
+          await Browser.open({ url: this.fileUrl });
+        }
       }
     } catch (error) {
       console.error('Error opening in browser:', error);
-      // Fallback to window.open
-      window.open(this.fileUrl, '_blank');
+      this.showErrorToast('Failed to open file in browser');
     }
+  }
+
+  private async openPdfInNewTab() {
+    try {
+      console.log(
+        'Opening PDF in new tab:',
+        this.fileName,
+        'isMobile:',
+        this.isMobile,
+        'isNative:',
+        this.isNative
+      );
+
+      // Special handling for mobile
+      if (this.isMobile) {
+        await this.openPdfInNewTabMobile();
+        return;
+      }
+
+      // Desktop handling
+      if (this.fileUrl.startsWith('blob:')) {
+        // For blob URLs, create an object URL that can be opened in new tab
+        console.log('Creating object URL for PDF to open in new tab');
+        await this.openPdfBlobInNewTab();
+      } else if (this.isLocalFile) {
+        // For local files, try to open directly
+        window.open(this.fileUrl, '_blank');
+      } else {
+        // For remote URLs, open directly
+        window.open(this.fileUrl, '_blank');
+      }
+    } catch (error) {
+      console.error('Error opening PDF in new tab:', error);
+      // Fallback to download
+      await this.downloadFile();
+      this.showSuccessToast('File downloaded. Could not open PDF in new tab.');
+    }
+  }
+
+  private async openPdfInNewTabMobile() {
+    try {
+      console.log('Opening PDF in new tab on mobile:', this.fileName);
+
+      if (this.fileUrl.startsWith('blob:')) {
+        // For blob URLs on mobile, try to open directly first
+        console.log('Blob URL on mobile, trying to open directly');
+        await this.tryOpenPdfBlobMobile();
+      } else if (this.isLocalFile) {
+        // For local files on mobile, try to open with system app (no download needed)
+        console.log('Local file on mobile, opening with system app');
+        await this.openLocalFileWithExternalApp();
+      } else {
+        // For remote URLs on mobile, try to open in browser
+        console.log('Remote URL on mobile, opening in browser');
+        await Browser.open({ url: this.fileUrl });
+      }
+    } catch (error) {
+      console.error('Error opening PDF in new tab on mobile:', error);
+      this.showErrorToast('Could not open PDF. Try downloading it instead.');
+    }
+  }
+
+  private async tryOpenPdfBlobMobile() {
+    try {
+      console.log(
+        'Trying to open PDF blob on mobile without download:',
+        this.fileName
+      );
+
+      if (this.isNative) {
+        // For native mobile, try to open with native PDF viewer
+        console.log('Native mobile: trying to open with native PDF viewer');
+        await this.openNativePdfViewer();
+      } else {
+        // For mobile browser, try to open in new tab first
+        console.log('Mobile browser: trying to open in new tab');
+        const newWindow = window.open(this.fileUrl, '_blank');
+
+        if (newWindow) {
+          this.showSuccessToast('PDF opened in new tab');
+        } else {
+          // If popup blocked or failed, show error
+          throw new Error('Could not open PDF in new tab');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to open PDF blob on mobile:', error);
+
+      // Show user-friendly error message
+      if (this.isNative) {
+        this.showErrorToast('Could not open PDF. Try downloading it instead.');
+      } else {
+        this.showErrorToast(
+          'Could not open PDF in new tab. Try downloading it instead.'
+        );
+      }
+    }
+  }
+
+  private async openPdfBlobInNewTab() {
+    try {
+      console.log('Opening PDF blob in new tab using object URL');
+
+      // Fetch the blob data
+      const response = await fetch(this.fileUrl);
+      const blob = await response.blob();
+
+      // Create an object URL instead of data URL
+      const objectUrl = URL.createObjectURL(blob);
+      console.log('Created object URL for PDF:', objectUrl);
+
+      // Open the object URL in a new tab
+      const newWindow = window.open(objectUrl, '_blank');
+
+      if (newWindow) {
+        this.showSuccessToast('PDF opened in new tab');
+
+        // Clean up the object URL after a delay
+        setTimeout(() => {
+          URL.revokeObjectURL(objectUrl);
+          console.log('Cleaned up object URL');
+        }, 5000);
+      } else {
+        // If popup was blocked, fallback to download
+        URL.revokeObjectURL(objectUrl);
+        await this.downloadFile();
+        this.showSuccessToast('Popup blocked. File downloaded instead.');
+      }
+    } catch (error) {
+      console.error('Error opening PDF blob in new tab:', error);
+      // Fallback to download
+      await this.downloadFile();
+      this.showSuccessToast('File downloaded. Could not open PDF in new tab.');
+    }
+  }
+
+  private async openDocumentInBrowser() {
+    try {
+      console.log('Opening document in browser:', this.fileName);
+
+      if (this.isNative) {
+        // For mobile, try to open with Google Docs Viewer or similar online service
+        await this.openDocumentWithOnlineViewer();
+      } else {
+        // For web, try to open directly in browser (not Google Docs Viewer)
+        await this.openDocumentDirectlyInBrowser();
+      }
+    } catch (error) {
+      console.error('Error opening document in browser:', error);
+      this.showErrorToast('Failed to open document in browser');
+    }
+  }
+
+  private async openDocumentDirectlyInBrowser() {
+    try {
+      console.log('Opening document with system default app:', this.fileName);
+
+      // For blob URLs, try to open directly with system app
+      if (this.fileUrl.startsWith('blob:')) {
+        console.log('Blob URL detected, trying to open with system app');
+        await this.openBlobWithSystemApp();
+        return;
+      }
+
+      // For local files, try to open with system default app
+      if (this.isLocalFile) {
+        // Try to open with system default application
+        await this.openLocalFileWithSystemApp();
+        return;
+      }
+
+      // For remote files, try to open directly first, fallback to download
+      await this.openRemoteFileWithSystemApp();
+    } catch (error) {
+      console.error('Error opening document with system app:', error);
+      // Fallback to download
+      await this.downloadFile();
+      this.showSuccessToast(
+        "File downloaded. You can open it with your system's default application."
+      );
+    }
+  }
+
+  private async openLocalFileWithSystemApp() {
+    try {
+      console.log('Opening local file with system app:', this.filePath);
+
+      // Create a temporary link element to trigger the system's default app
+      const link = document.createElement('a');
+      link.href = this.fileUrl;
+      link.download = this.fileName;
+      link.target = '_blank';
+
+      // Set the MIME type to help the system choose the right app
+      const mimeType = this.getMimeType();
+      if (mimeType) {
+        link.type = mimeType;
+      }
+
+      // Trigger the click
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      this.showSuccessToast('Opening file with system default application...');
+    } catch (error) {
+      console.error('Error opening local file with system app:', error);
+      throw error;
+    }
+  }
+
+  private async downloadAndOpenWithSystemApp() {
+    try {
+      console.log('Downloading and opening with system app:', this.fileName);
+
+      // Download the file first
+      await this.downloadFile();
+
+      // Show success message with instructions
+      this.showSuccessToast(
+        "File downloaded. You can now open it with your system's default application from the downloads folder."
+      );
+    } catch (error) {
+      console.error('Error downloading and opening with system app:', error);
+      throw error;
+    }
+  }
+
+  private async openBlobWithSystemApp() {
+    try {
+      console.log('Opening blob with system app:', this.fileName);
+
+      // Fetch the blob data
+      const response = await fetch(this.fileUrl);
+      const blob = await response.blob();
+
+      // Create a data URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        console.log('Created data URL, opening with system app');
+
+        // Create a temporary link element to trigger the system's default app
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = this.fileName;
+        link.target = '_blank';
+
+        // Set the MIME type to help the system choose the right app
+        const mimeType = this.getMimeType();
+        if (mimeType) {
+          link.type = mimeType;
+        }
+
+        // Trigger the click
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        this.showSuccessToast(
+          'Opening file with system default application...'
+        );
+      };
+
+      reader.onerror = (error) => {
+        console.error('Error creating data URL:', error);
+        // Fallback to download
+        this.downloadFile();
+      };
+
+      reader.readAsDataURL(blob);
+    } catch (error) {
+      console.error('Error opening blob with system app:', error);
+      // Fallback to download
+      await this.downloadFile();
+    }
+  }
+
+  private async openRemoteFileWithSystemApp() {
+    try {
+      console.log('Opening remote file with system app:', this.fileName);
+
+      // Try to open directly first
+      const link = document.createElement('a');
+      link.href = this.fileUrl;
+      link.download = this.fileName;
+      link.target = '_blank';
+
+      // Set the MIME type to help the system choose the right app
+      const mimeType = this.getMimeType();
+      if (mimeType) {
+        link.type = mimeType;
+      }
+
+      // Trigger the click
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      this.showSuccessToast('Opening file with system default application...');
+    } catch (error) {
+      console.error('Error opening remote file with system app:', error);
+      // Fallback to download
+      await this.downloadFile();
+      this.showSuccessToast(
+        "File downloaded. You can now open it with your system's default application from the downloads folder."
+      );
+    }
+  }
+
+  private async openDocumentWithOnlineViewer() {
+    try {
+      console.log('Opening document with online viewer:', this.fileName);
+
+      // For mobile, we need to upload the file to a service or use Google Docs Viewer
+      // Since we can't directly upload from mobile, we'll download and provide instructions
+      await this.downloadFile();
+
+      // Show instructions for opening with online viewer
+      this.showSuccessToast(
+        'File downloaded. You can upload it to Google Docs, Office Online, or similar online viewers.'
+      );
+
+      // Optionally, try to open Google Docs in browser
+      try {
+        await Browser.open({ url: 'https://docs.google.com' });
+      } catch (browserError) {
+        console.log('Could not open Google Docs in browser');
+      }
+    } catch (error) {
+      console.error('Error opening document with online viewer:', error);
+      throw error;
+    }
+  }
+
+  async openDocumentInViewer() {
+    try {
+      console.log('Opening document in viewer:', this.fileName);
+
+      if (this.isNative) {
+        // For native mobile, try to open with external app
+        await this.openDocumentWithExternalApp();
+      } else {
+        // For web, try to display in app or use online viewer
+        await this.openDocumentInWeb();
+      }
+    } catch (error) {
+      console.error('Error opening document in viewer:', error);
+      this.showErrorToast('Failed to open document');
+    }
+  }
+
+  private async openDocumentInWeb() {
+    try {
+      console.log('Opening document in web:', this.fileName);
+
+      // Check if it's a .docx file that we can convert
+      if (this.fileName.toLowerCase().endsWith('.docx')) {
+        await this.convertAndDisplayDocx();
+        return;
+      }
+
+      // For other document types, try Google Docs Viewer
+      await this.openInGoogleDocsViewer();
+    } catch (error) {
+      console.error('Error opening document in web:', error);
+      throw error;
+    }
+  }
+
+  private async openDocumentWithExternalApp() {
+    try {
+      console.log('Opening document with external app:', this.fileName);
+
+      // Check if it's a .docx file that we can convert
+      if (this.fileName.toLowerCase().endsWith('.docx')) {
+        await this.convertAndDisplayDocx();
+        return;
+      }
+
+      // For other document types, try to open with system default app
+      if (this.isLocalFile && this.filePath) {
+        // Use the local file path
+        await this.openLocalFileWithExternalApp();
+      } else {
+        // Download first, then try to open
+        await this.downloadAndOpenWithExternalApp();
+      }
+    } catch (error) {
+      console.error('Error opening document with external app:', error);
+      // Fallback to download
+      await this.downloadFile();
+      this.showSuccessToast(
+        'File downloaded. You can open it with an external app.'
+      );
+    }
+  }
+
+  private async convertAndDisplayDocx() {
+    try {
+      console.log('Converting DOCX to HTML for display');
+
+      // Import mammoth for DOCX conversion
+      const mammoth = await import('mammoth');
+
+      let docxData: string;
+
+      if (this.isLocalFile && this.filePath) {
+        // Read from filesystem
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const result = await Filesystem.readFile({
+          path: this.filePath,
+          directory: Directory.Cache,
+        });
+        docxData = result.data as string;
+      } else {
+        // Fetch from blob URL
+        const response = await fetch(this.fileUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        docxData = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      }
+
+      // Convert base64 to array buffer
+      const binaryString = atob(docxData);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const arrayBuffer = bytes.buffer;
+
+      // Convert DOCX to HTML
+      const result = await mammoth.default.convertToHtml({ arrayBuffer });
+      const html = result.value;
+
+      // Display the HTML content
+      this.textContent = html;
+      this.isTextFile = true;
+      this.isDocumentFile = false;
+
+      console.log('DOCX converted and displayed successfully');
+      this.showSuccessToast('Document converted and displayed');
+    } catch (error) {
+      console.error('Error converting DOCX:', error);
+      // Fallback to download
+      await this.downloadFile();
+      this.showSuccessToast(
+        'File downloaded. You can open it with Microsoft Word or compatible app.'
+      );
+    }
+  }
+
+  private async openLocalFileWithExternalApp() {
+    try {
+      console.log('Opening local file with external app:', this.filePath);
+
+      // Get the full URI for the file
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      const result = await Filesystem.getUri({
+        path: this.filePath,
+        directory: Directory.Cache,
+      });
+
+      console.log('File URI for external app:', result.uri);
+
+      // Try to open with system default app using Capacitor Browser
+      // Note: This might not work on all devices, but it's worth trying
+      await Browser.open({ url: result.uri });
+    } catch (error) {
+      console.error('Error opening local file with external app:', error);
+      throw error;
+    }
+  }
+
+  private async downloadAndOpenWithExternalApp() {
+    try {
+      console.log(
+        'Downloading and opening document with external app:',
+        this.fileName
+      );
+
+      // Download the file first
+      await this.downloadFile();
+
+      // Show success message
+      this.showSuccessToast(
+        'File downloaded. You can open it with an external app from your downloads folder.'
+      );
+    } catch (error) {
+      console.error('Error downloading and opening with external app:', error);
+      throw error;
+    }
+  }
+
+  private async openInGoogleDocsViewer() {
+    try {
+      // For blob URLs, we need to create a data URL first
+      if (this.fileUrl.startsWith('blob:')) {
+        console.log(
+          'Blob URL detected, creating data URL for Google Docs Viewer'
+        );
+        await this.openBlobInGoogleDocsViewer();
+        return;
+      }
+
+      // Create a Google Docs Viewer URL
+      const encodedUrl = encodeURIComponent(this.fileUrl);
+      const googleDocsUrl = `https://docs.google.com/viewer?url=${encodedUrl}&embedded=true`;
+
+      console.log('Opening in Google Docs Viewer:', googleDocsUrl);
+
+      if (this.isMobile) {
+        // Use Capacitor Browser for mobile
+        await Browser.open({ url: googleDocsUrl });
+      } else {
+        // Use window.open for desktop with popup blocker handling
+        const newWindow = window.open(googleDocsUrl, '_blank');
+
+        // Check if popup was blocked
+        if (
+          !newWindow ||
+          newWindow.closed ||
+          typeof newWindow.closed === 'undefined'
+        ) {
+          console.log('Popup blocked, trying alternative approach');
+          this.handlePopupBlocked(googleDocsUrl);
+        } else {
+          console.log('Google Docs Viewer opened successfully');
+        }
+      }
+    } catch (error) {
+      console.error('Error opening in Google Docs Viewer:', error);
+      // Fallback to download
+      await this.downloadFile();
+    }
+  }
+
+  private async openBlobInGoogleDocsViewer() {
+    try {
+      console.log('Using alternative approach for document viewing');
+
+      // The backend URL requires authentication, so Google Docs Viewer cannot access it directly
+      // We'll use a different approach based on file type
+
+      if (this.fileName.toLowerCase().endsWith('.docx')) {
+        // For .docx files, convert and display in the app
+        console.log('Converting DOCX to HTML for display');
+        await this.convertAndDisplayDocx();
+        return;
+      }
+
+      // For other document types, download and provide instructions
+      console.log('Downloading document and providing viewing instructions');
+      await this.downloadFile();
+
+      // Show success message with instructions
+      this.showSuccessToast(
+        'File downloaded. You can open it with Microsoft Word, Google Docs, or other compatible applications.'
+      );
+
+      // Also try to open Google Docs in a new tab for easy upload
+      try {
+        const googleDocsUrl = 'https://docs.google.com';
+        const newWindow = window.open(googleDocsUrl, '_blank');
+
+        if (newWindow) {
+          this.showSuccessToast(
+            'Opened Google Docs. You can upload the downloaded file there.'
+          );
+        } else {
+          this.showSuccessToast(
+            'File downloaded. Open Google Docs manually to upload the file.'
+          );
+        }
+      } catch (error) {
+        console.log('Could not open Google Docs:', error);
+        this.showSuccessToast(
+          'File downloaded. Open Google Docs manually to upload the file.'
+        );
+      }
+    } catch (error) {
+      console.error('Error with alternative viewer:', error);
+      // Fallback to simple download
+      await this.downloadFile();
+      this.showSuccessToast('File downloaded successfully.');
+    }
+  }
+
+  private async constructDirectBackendUrl(): Promise<string | null> {
+    try {
+      console.log('Constructing direct backend URL for:', this.fileName);
+
+      // Check if we have backend parameters
+      if (!this.backendParams) {
+        console.log('No backend parameters available');
+        return null;
+      }
+
+      // Construct the direct backend URL
+      const { folder, messageNumber, filename, userName, apiUrl } =
+        this.backendParams;
+
+      // Create the direct backend URL
+      const directUrl = `${apiUrl}attachment?folder=${encodeURIComponent(
+        folder
+      )}&messageNumber=${messageNumber}&filename=${encodeURIComponent(
+        filename
+      )}&userName=${encodeURIComponent(userName)}`;
+
+      console.log('Constructed direct backend URL:', directUrl);
+
+      return directUrl;
+    } catch (error) {
+      console.error('Error constructing direct backend URL:', error);
+      return null;
+    }
+  }
+
+  private handlePopupBlocked(url: string) {
+    console.log('Popup blocked, providing user with options');
+
+    // Show user-friendly message about popup blocker
+    this.showErrorToast(
+      'Popup blocked. Please allow popups for this site or click the link below.'
+    );
+
+    // Create a visible link that user can click manually
+    const linkContainer = document.createElement('div');
+    linkContainer.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border: 2px solid #007bff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 10000;
+      text-align: center;
+      max-width: 400px;
+    `;
+
+    linkContainer.innerHTML = `
+      <h3 style="margin: 0 0 15px 0; color: #333;">Document Viewer</h3>
+      <p style="margin: 0 0 15px 0; color: #666;">
+        Your browser blocked the popup. Click the link below to open the document:
+      </p>
+      <a href="${url}" target="_blank" style="
+        display: inline-block;
+        background: #007bff;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 4px;
+        margin: 0 10px;
+      ">Open Document</a>
+      <button onclick="this.parentElement.remove()" style="
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 0 10px;
+      ">Close</button>
+    `;
+
+    document.body.appendChild(linkContainer);
+
+    // Auto-remove after 30 seconds
+    setTimeout(() => {
+      if (document.body.contains(linkContainer)) {
+        document.body.removeChild(linkContainer);
+      }
+    }, 30000);
   }
 
   async openPdfJsViewer() {
     try {
-      const isNativePlatform = this.isNative;
-      const isMobilePlatform = this.isMobile;
-      const isLocalFileFlag = this.isLocalFile;
+      console.log(
+        'Opening PDF viewer:',
+        this.fileName,
+        'isNative:',
+        this.isNative,
+        'isMobile:',
+        this.isMobile,
+        'isLocalFile:',
+        this.isLocalFile
+      );
 
-      if (isNativePlatform) {
+      if (this.isNative) {
         // Use native PDF viewer on mobile
         await this.openNativePdfViewer();
       } else {
-        if (isMobilePlatform) {
-          // For mobile web, if it's a local file, open directly
-          if (isLocalFileFlag) {
-            await Browser.open({ url: this.fileUrl });
-          } else {
-            // Use Capacitor Browser for mobile web with PDF.js
-            const pdfJsViewerUrl =
-              'https://mozilla.github.io/pdf.js/web/viewer.html';
-            const encodedUrl = encodeURIComponent(this.fileUrl);
-            const fullViewerUrl = `${pdfJsViewerUrl}?file=${encodedUrl}`;
-            await Browser.open({ url: fullViewerUrl });
-          }
+        if (this.isMobile) {
+          // For mobile web, try to open directly first
+          await this.openPdfViewerMobile();
         } else {
-          // For desktop, handle both local and remote files
-          if (isLocalFileFlag) {
-            // For local files, open directly in browser
-            window.open(this.fileUrl, '_blank');
-          } else {
-            // For remote files, download first then open
-            await this.downloadAndOpenPdf();
-          }
+          // For desktop, try to open directly first
+          await this.openPdfViewerDesktop();
         }
       }
     } catch (error) {
       console.error('Error opening PDF viewer:', error);
-      // Fallback to browser
-      this.openInBrowser();
+      this.showErrorToast(
+        'Could not open PDF viewer. Try downloading it instead.'
+      );
+    }
+  }
+
+  private async openPdfViewerMobile() {
+    try {
+      console.log('Opening PDF viewer on mobile web:', this.fileName);
+
+      if (this.isLocalFile) {
+        // For local files, open directly in browser
+        await Browser.open({ url: this.fileUrl });
+        this.showSuccessToast('PDF opened in browser');
+      } else if (this.fileUrl.startsWith('blob:')) {
+        // For blob URLs, use in-app PDF viewer (like desktop)
+        await this.openPdfInApp();
+      } else {
+        // For remote URLs, try to open with PDF.js viewer
+        await this.openPdfJsViewerOnline();
+      }
+    } catch (error) {
+      console.error('Error opening PDF viewer on mobile web:', error);
+      this.showErrorToast(
+        'Could not open PDF viewer. Try downloading it instead.'
+      );
+    }
+  }
+
+  private async openPdfViewerDesktop() {
+    try {
+      console.log('Opening PDF viewer on desktop:', this.fileName);
+
+      if (this.isLocalFile) {
+        // For local files, open directly in browser
+        window.open(this.fileUrl, '_blank');
+        this.showSuccessToast('PDF opened in browser');
+      } else if (this.fileUrl.startsWith('blob:')) {
+        // For blob URLs, use in-app PDF viewer
+        await this.openPdfInApp();
+      } else {
+        // For remote URLs, try to open with online PDF.js viewer
+        await this.openPdfJsViewerOnline();
+      }
+    } catch (error) {
+      console.error('Error opening PDF viewer on desktop:', error);
+      this.showErrorToast(
+        'Could not open PDF viewer. Try downloading it instead.'
+      );
+    }
+  }
+
+  private async openPdfInApp() {
+    try {
+      console.log('Opening PDF in-app on desktop:', this.fileName);
+
+      if (this.fileUrl.startsWith('blob:')) {
+        // For blob URLs, create object URL for in-app viewing
+        const response = await fetch(this.fileUrl);
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        // Set the PDF viewer URL for in-app display
+        this.pdfViewerUrl =
+          this.sanitizer.bypassSecurityTrustResourceUrl(objectUrl);
+
+        // Show the PDF in the current modal instead of new tab
+        this.showSuccessToast('PDF opened in viewer');
+
+        // Clean up object URL when component is destroyed
+        this.cleanupBlobUrl = objectUrl;
+      } else {
+        // For remote URLs, use directly
+        this.pdfViewerUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
+          this.fileUrl
+        );
+        this.showSuccessToast('PDF opened in viewer');
+      }
+    } catch (error) {
+      console.error('Error opening PDF in-app:', error);
+      throw error;
+    }
+  }
+
+  private async openPdfJsViewerOnline() {
+    try {
+      console.log('Opening PDF with online PDF.js viewer:', this.fileName);
+
+      // Check if it's a blob URL (which won't work with external PDF.js)
+      if (this.fileUrl.startsWith('blob:')) {
+        console.log('Blob URL detected, cannot use external PDF.js viewer');
+        throw new Error(
+          'Blob URLs cannot be accessed by external PDF.js viewer'
+        );
+      }
+
+      // Use PDF.js viewer for both desktop and mobile
+      const pdfJsViewerUrl = 'https://mozilla.github.io/pdf.js/web/viewer.html';
+      const encodedUrl = encodeURIComponent(this.fileUrl);
+      const fullViewerUrl = `${pdfJsViewerUrl}?file=${encodedUrl}`;
+
+      if (this.isDesktop) {
+        // For desktop, open in new tab
+        window.open(fullViewerUrl, '_blank');
+        this.showSuccessToast('PDF opened in online viewer');
+      } else {
+        // For mobile, use Capacitor Browser
+        await Browser.open({ url: fullViewerUrl });
+        this.showSuccessToast('PDF opened in online viewer');
+      }
+    } catch (error) {
+      console.error('Error opening PDF.js viewer:', error);
+      throw error;
+    }
+  }
+
+  private async tryOpenPdfDirectly() {
+    try {
+      console.log('Trying to open PDF directly on desktop:', this.fileName);
+
+      if (this.fileUrl.startsWith('blob:')) {
+        // For blob URLs, create object URL and open
+        const response = await fetch(this.fileUrl);
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+
+        const newWindow = window.open(objectUrl, '_blank');
+
+        if (newWindow) {
+          this.showSuccessToast('PDF opened in browser');
+
+          // Clean up object URL after delay
+          setTimeout(() => {
+            URL.revokeObjectURL(objectUrl);
+          }, 5000);
+        } else {
+          throw new Error('Could not open PDF in new window');
+        }
+      } else {
+        // For remote URLs, try to open directly
+        window.open(this.fileUrl, '_blank');
+        this.showSuccessToast('PDF opened in browser');
+      }
+    } catch (error) {
+      console.error('Error opening PDF directly:', error);
+      throw error;
     }
   }
 
@@ -938,28 +1954,37 @@ export class FilePreviewComponent implements OnInit, OnDestroy {
         'URL:',
         this.fileUrl,
         'isLocalFile:',
-        this.isLocalFile
+        this.isLocalFile,
+        'filePath:',
+        this.filePath
       );
 
-      // If it's already a local file, use it directly
-      if (this.isLocalFile) {
+      // For mobile, we need to use the filesystem path
+      if (this.isLocalFile && this.filePath) {
+        // Use the local file path directly
+        console.log('Using local file path for PDF viewer:', this.filePath);
+
+        // Create a file:// URL from the filesystem path
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+
+        // Get the full URI for the file
+        const result = await Filesystem.getUri({
+          path: this.filePath,
+          directory: Directory.Cache,
+        });
+
+        console.log('PDF file URI:', result.uri);
+
         await PDFViewer.open({
-          url: this.fileUrl,
+          url: result.uri,
           title: this.fileName,
         });
+
+        this.showSuccessToast('PDF opened in native viewer');
       } else {
-        // Download the PDF first to get a local path
-        const response = await fetch(this.fileUrl);
-        const blob = await response.blob();
-
-        // Create a temporary file URL
-        const fileUrl = URL.createObjectURL(blob);
-
-        // Open with native PDF viewer
-        await PDFViewer.open({
-          url: fileUrl,
-          title: this.fileName,
-        });
+        // For non-local files, try to open directly first
+        console.log('Trying to open PDF directly with native viewer');
+        await this.tryOpenPdfNativeDirectly();
       }
     } catch (error) {
       console.error('Error opening native PDF viewer:', error);
@@ -967,8 +1992,101 @@ export class FilePreviewComponent implements OnInit, OnDestroy {
       if (error instanceof Error && error.message?.includes('corrupted')) {
         console.error('PDF appears to be corrupted or invalid');
       }
-      // Fallback to browser
-      this.openInBrowser();
+      this.showErrorToast(
+        'Could not open PDF in native viewer. Try downloading it instead.'
+      );
+    }
+  }
+
+  private async tryOpenPdfNativeDirectly() {
+    try {
+      console.log(
+        'Trying to open PDF directly with native viewer:',
+        this.fileName
+      );
+
+      if (this.fileUrl.startsWith('blob:')) {
+        // For blob URLs, try to open directly with native viewer
+        console.log('Blob URL detected, trying to open directly');
+        await PDFViewer.open({
+          url: this.fileUrl,
+          title: this.fileName,
+        });
+        this.showSuccessToast('PDF opened in native viewer');
+      } else {
+        // For remote URLs, try to open directly
+        console.log('Remote URL detected, trying to open directly');
+        await PDFViewer.open({
+          url: this.fileUrl,
+          title: this.fileName,
+        });
+        this.showSuccessToast('PDF opened in native viewer');
+      }
+    } catch (error) {
+      console.error('Failed to open PDF directly with native viewer:', error);
+
+      // Only download if direct opening fails
+      console.log('Direct opening failed, downloading for native viewer');
+      await this.downloadAndOpenPdfNative();
+    }
+  }
+
+  private async downloadAndOpenPdfNative() {
+    try {
+      console.log('Downloading PDF for native viewing:', this.fileName);
+
+      // Download the PDF file
+      const response = await fetch(this.fileUrl);
+      const blob = await response.blob();
+
+      // Convert to base64
+      const base64Data = await this.blobToBase64(blob);
+
+      // Save to cache directory
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+      const pdfPath = `pdf_${Date.now()}_${this.fileName.replace(
+        /[^a-zA-Z0-9.\-_]/g,
+        '_'
+      )}`;
+
+      await Filesystem.writeFile({
+        path: pdfPath,
+        data: base64Data,
+        directory: Directory.Cache,
+        recursive: true,
+      });
+
+      // Get the URI and open with PDF viewer
+      const result = await Filesystem.getUri({
+        path: pdfPath,
+        directory: Directory.Cache,
+      });
+
+      console.log(
+        'PDF saved to cache, opening with native viewer:',
+        result.uri
+      );
+
+      await PDFViewer.open({
+        url: result.uri,
+        title: this.fileName,
+      });
+
+      // Clean up the temporary file after a delay
+      setTimeout(async () => {
+        try {
+          await Filesystem.deleteFile({
+            path: pdfPath,
+            directory: Directory.Cache,
+          });
+          console.log('Temporary PDF file cleaned up:', pdfPath);
+        } catch (cleanupError) {
+          console.warn('Could not clean up temporary PDF file:', cleanupError);
+        }
+      }, 30000); // Clean up after 30 seconds
+    } catch (error) {
+      console.error('Error downloading and opening PDF natively:', error);
+      throw error;
     }
   }
 
@@ -1109,5 +2227,18 @@ export class FilePreviewComponent implements OnInit, OnDestroy {
       URL.revokeObjectURL(this.cleanupBlobUrl);
       this.cleanupBlobUrl = null;
     }
+  }
+
+  closePdfViewer() {
+    // Clear the PDF viewer URL to show options again
+    this.pdfViewerUrl = '';
+
+    // Clean up blob URL if it exists
+    if (this.cleanupBlobUrl) {
+      URL.revokeObjectURL(this.cleanupBlobUrl);
+      this.cleanupBlobUrl = null;
+    }
+
+    this.showSuccessToast('PDF viewer closed');
   }
 }

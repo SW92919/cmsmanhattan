@@ -409,6 +409,14 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
             fileUrl: blobUrl,
             fileName: fileName,
             isLocalFile: false, // Explicitly set for web
+            // Add backend parameters for Google Docs Viewer
+            backendParams: {
+              folder: this.folder,
+              messageNumber: Number(this.messageContent?.messageNumber),
+              filename: fileName,
+              userName: this.getUserName(),
+              apiUrl: environment.apiUrl,
+            },
           },
           cssClass: 'file-preview-modal',
           backdropDismiss: true,
@@ -474,6 +482,14 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
           fileName: fileName,
           isLocalFile: true, // Flag to indicate this is a local file
           filePath: safePath, // Pass the path used to save the file
+          // Add backend parameters for Google Docs Viewer
+          backendParams: {
+            folder: this.folder,
+            messageNumber: Number(this.messageContent?.messageNumber),
+            filename: fileName,
+            userName: this.getUserName(),
+            apiUrl: environment.apiUrl,
+          },
         },
         cssClass: 'file-preview-modal',
         backdropDismiss: true,
@@ -509,6 +525,14 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
             fileUrl: blobUrl,
             fileName: fileName,
             isLocalFile: false,
+            // Add backend parameters for Google Docs Viewer
+            backendParams: {
+              folder: this.folder,
+              messageNumber: Number(this.messageContent?.messageNumber),
+              filename: fileName,
+              userName: this.getUserName(),
+              apiUrl: environment.apiUrl,
+            },
           },
           cssClass: 'file-preview-modal',
           backdropDismiss: true,

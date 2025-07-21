@@ -1,4 +1,11 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnInit,
+  OnDestroy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, ModalController } from '@ionic/angular';
 import { MatIconModule } from '@angular/material/icon';
@@ -38,10 +45,11 @@ import {
   templateUrl: './file-preview.component.html',
   styleUrls: ['./file-preview.component.css'],
 })
-export class FilePreviewComponent implements OnInit {
+export class FilePreviewComponent implements OnInit, OnDestroy {
   @Input() fileUrl: string = '';
   @Input() fileName: string = '';
   @Input() isLocalFile: boolean = false; // Flag to indicate if this is a local file
+  @Input() filePath: string = ''; // Path used to save the file in filesystem
   @Output() closePreview = new EventEmitter<void>();
 
   // Image zoom/pan properties
@@ -66,6 +74,7 @@ export class FilePreviewComponent implements OnInit {
   textContent: string = '';
   safeFileUrl: SafeResourceUrl = '';
   pdfViewerUrl: SafeResourceUrl = '';
+  cleanupBlobUrl: string | null = null; // To store blob URL for cleanup
 
   constructor(
     private modalController: ModalController,
@@ -102,12 +111,13 @@ export class FilePreviewComponent implements OnInit {
   }
 
   get isMobile(): boolean {
-    return (
-      this.isNative ||
+    // Check if we're in mobile simulation mode in dev tools
+    const isMobileSimulation =
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent
-      )
-    );
+      );
+
+    return this.isNative || isMobileSimulation;
   }
 
   get isDesktop(): boolean {
@@ -121,12 +131,43 @@ export class FilePreviewComponent implements OnInit {
       'fileUrl:',
       this.fileUrl,
       'isLocalFile:',
-      this.isLocalFile
+      this.isLocalFile,
+      'filePath:',
+      this.filePath,
+      'isNative:',
+      this.isNative,
+      'isMobile:',
+      this.isMobile
     );
     this.detectFileType();
-    this.safeFileUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
-      this.fileUrl
-    );
+
+    // Handle local files on mobile platforms
+    if (this.isLocalFile && this.isNative) {
+      console.log(
+        'Calling handleLocalFileOnMobile - isLocalFile and isNative are true'
+      );
+      this.handleLocalFileOnMobile();
+    } else if (this.isLocalFile && !this.isNative && this.isMobile) {
+      // For mobile simulation in browser with local files
+      console.log(
+        'Mobile simulation with local file detected, using standard handling'
+      );
+      this.safeFileUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
+        this.fileUrl
+      );
+    } else {
+      console.log(
+        'Using standard file URL handling - isLocalFile:',
+        this.isLocalFile,
+        'isNative:',
+        this.isNative,
+        'isMobile:',
+        this.isMobile
+      );
+      this.safeFileUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
+        this.fileUrl
+      );
+    }
 
     // Start loading timeout as fallback
     this.startLoadingTimeout();
@@ -153,6 +194,95 @@ export class FilePreviewComponent implements OnInit {
         }
       }, 1000);
     }
+  }
+
+  private async handleLocalFileOnMobile() {
+    try {
+      console.log('Handling local file on mobile:', this.fileUrl);
+
+      // Guard: Only proceed if this is actually a local file
+      if (!this.isLocalFile) {
+        console.log(
+          'handleLocalFileOnMobile called but isLocalFile is false, using standard handling'
+        );
+        this.safeFileUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
+          this.fileUrl
+        );
+        return;
+      }
+
+      // This method should only be called for native mobile with local files
+      // Mobile simulation is handled in ngOnInit
+
+      // Import Filesystem here to avoid circular dependency issues
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+
+      // Try to read the file as base64
+      const pathToRead =
+        this.filePath ||
+        this.fileUrl.replace('file://', '').replace('content://', '');
+      console.log('Attempting to read file from path:', pathToRead);
+
+      const result = await Filesystem.readFile({
+        path: pathToRead,
+        directory: Directory.Cache,
+      });
+
+      // Convert base64 to blob URL
+      const base64Data = result.data as string;
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: this.getMimeType() });
+      const blobUrl = URL.createObjectURL(blob);
+
+      console.log('Created blob URL for local file:', blobUrl);
+      this.safeFileUrl = this.sanitizer.bypassSecurityTrustResourceUrl(blobUrl);
+
+      // Clean up blob URL when component is destroyed
+      this.cleanupBlobUrl = blobUrl;
+    } catch (error) {
+      console.error('Error handling local file on mobile:', error);
+
+      // Fallback: try to use the original URL directly
+      console.log('Falling back to original URL');
+      this.safeFileUrl = this.sanitizer.bypassSecurityTrustResourceUrl(
+        this.fileUrl
+      );
+    }
+  }
+
+  private getMimeType(): string {
+    const extension = this.fileName
+      .toLowerCase()
+      .substring(this.fileName.lastIndexOf('.'));
+    const mimeTypes: { [key: string]: string } = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.bmp': 'image/bmp',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml',
+      '.pdf': 'application/pdf',
+      '.mp4': 'video/mp4',
+      '.avi': 'video/x-msvideo',
+      '.mov': 'video/quicktime',
+      '.mp3': 'audio/mpeg',
+      '.wav': 'audio/wav',
+      '.flac': 'audio/flac',
+      '.txt': 'text/plain',
+      '.html': 'text/html',
+      '.htm': 'text/html',
+      '.css': 'text/css',
+      '.js': 'application/javascript',
+      '.json': 'application/json',
+      '.xml': 'application/xml',
+    };
+    return mimeTypes[extension] || 'application/octet-stream';
   }
 
   private setupPdfViewer() {
@@ -539,8 +669,12 @@ export class FilePreviewComponent implements OnInit {
 
   async onFileLoad() {
     console.log('File load event fired for:', this.fileName);
-    this.isLoading = false;
-    this.hasError = false;
+
+    // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.isLoading = false;
+      this.hasError = false;
+    }, 0);
 
     // For text files, try to read the content
     if (this.isTextFile) {
@@ -551,16 +685,33 @@ export class FilePreviewComponent implements OnInit {
   private async loadTextContent() {
     try {
       console.log('Loading text content for:', this.fileName);
-      const response = await fetch(this.fileUrl);
-      const text = await response.text();
-      // Limit text content to prevent memory issues
-      this.textContent =
-        text.length > 10000
-          ? text.substring(0, 10000) + '\n\n... (content truncated)'
-          : text;
-      this.isLoading = false;
-      this.hasError = false;
-      console.log('Text content loaded successfully for:', this.fileName);
+
+      // For local files on mobile, we need to handle differently
+      if (this.isLocalFile && this.isNative) {
+        // Use the blob URL if available, otherwise use original URL
+        const urlToUse = this.cleanupBlobUrl || this.fileUrl;
+        const response = await fetch(urlToUse);
+        const text = await response.text();
+        // Limit text content to prevent memory issues
+        this.textContent =
+          text.length > 10000
+            ? text.substring(0, 10000) + '\n\n... (content truncated)'
+            : text;
+        this.isLoading = false;
+        this.hasError = false;
+        console.log('Text content loaded successfully for:', this.fileName);
+      } else {
+        const response = await fetch(this.fileUrl);
+        const text = await response.text();
+        // Limit text content to prevent memory issues
+        this.textContent =
+          text.length > 10000
+            ? text.substring(0, 10000) + '\n\n... (content truncated)'
+            : text;
+        this.isLoading = false;
+        this.hasError = false;
+        console.log('Text content loaded successfully for:', this.fileName);
+      }
     } catch (error) {
       console.error('Error reading text file:', error);
       this.textContent = 'Unable to read file content.';
@@ -575,14 +726,23 @@ export class FilePreviewComponent implements OnInit {
       if (this.isLoading) {
         console.log('Loading timeout reached, setting loading to false');
         this.isLoading = false;
+        // If we have a safeFileUrl but still loading, try to force load
+        if (this.safeFileUrl && this.isImageFile) {
+          console.log('Forcing image load completion');
+          this.onFileLoad();
+        }
       }
-    }, 5000); // 5 second timeout
+    }, 3000); // Reduced to 3 second timeout
   }
 
   onFileError() {
     console.log('File error event fired for:', this.fileName);
-    this.isLoading = false;
-    this.hasError = true;
+
+    // Use setTimeout to avoid ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.isLoading = false;
+      this.hasError = true;
+    }, 0);
   }
 
   onPdfError() {
@@ -925,7 +1085,7 @@ export class FilePreviewComponent implements OnInit {
       // Disk Images
       case '.iso':
       case '.img':
-      case '.dmg':
+        // case '.dmg':
         return 'Disk image file. Mount or burn to media.';
 
       default:
@@ -933,8 +1093,21 @@ export class FilePreviewComponent implements OnInit {
     }
   }
 
+  ngOnDestroy() {
+    // Clean up blob URL if it exists
+    if (this.cleanupBlobUrl) {
+      URL.revokeObjectURL(this.cleanupBlobUrl);
+      this.cleanupBlobUrl = null;
+    }
+  }
+
   close() {
     this.closePreview.emit();
     this.modalController.dismiss();
+    // Clean up blob URL if it exists
+    if (this.cleanupBlobUrl) {
+      URL.revokeObjectURL(this.cleanupBlobUrl);
+      this.cleanupBlobUrl = null;
+    }
   }
 }

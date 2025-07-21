@@ -408,6 +408,7 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
           componentProps: {
             fileUrl: blobUrl,
             fileName: fileName,
+            isLocalFile: false, // Explicitly set for web
           },
           cssClass: 'file-preview-modal',
           backdropDismiss: true,
@@ -463,12 +464,16 @@ export class MailMessageComponent implements OnInit, OnChanges, OnDestroy {
         localFileUrl = `file://${result.uri}`;
       }
 
+      console.log('Local file URL created:', localFileUrl);
+      console.log('File path for filesystem:', safePath);
+
       const modal = await this.modalController.create({
         component: FilePreviewComponent,
         componentProps: {
           fileUrl: localFileUrl,
           fileName: fileName,
           isLocalFile: true, // Flag to indicate this is a local file
+          filePath: safePath, // Pass the path used to save the file
         },
         cssClass: 'file-preview-modal',
         backdropDismiss: true,

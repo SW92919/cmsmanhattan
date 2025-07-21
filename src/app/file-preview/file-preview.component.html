@@ -27,7 +27,7 @@
     (mouseleave)="onMouseUp($event)"
   >
     <img
-      [src]="fileUrl"
+      [src]="safeFileUrl"
       [alt]="fileName"
       [style.transform]="
         'scale(' + zoom + ') translate(' + panX + 'px, ' + panY + 'px)'
@@ -79,7 +79,7 @@
   <!-- Video Preview -->
   <div *ngIf="!isLoading && isVideoFile" class="video-container">
     <video
-      [src]="fileUrl"
+      [src]="safeFileUrl"
       controls
       class="video-player"
       (loadeddata)="onFileLoad()"
@@ -96,7 +96,7 @@
       <h3>{{ fileName }}</h3>
     </div>
     <audio
-      [src]="fileUrl"
+      [src]="safeFileUrl"
       controls
       class="audio-player"
       (loadeddata)="onFileLoad()"
@@ -158,7 +158,7 @@
   <div *ngIf="hasError" class="error">
     <ion-icon name="alert-circle-outline"></ion-icon>
     <h3>Preview Error</h3>
-    <p>Unable to preview this file.</p>
+    <p> preview this file.</p>
     <ion-button (click)="downloadFile()" fill="solid">
       <ion-icon name="download-outline" slot="start"></ion-icon>
       Download Instead
